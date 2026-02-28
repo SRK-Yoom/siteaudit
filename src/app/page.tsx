@@ -186,7 +186,7 @@ function LoadingScreen({ url }: { url: string }) {
       </div>
 
       <p className="mt-8 text-xs text-white/25 max-w-xs leading-relaxed">
-        This takes 15–30 seconds. We're running a full mobile performance, SEO, and AI-readiness
+        This takes 15–30 seconds. We&apos;re running a full mobile performance, SEO, and AI-readiness
         check powered by Google.
       </p>
     </div>
