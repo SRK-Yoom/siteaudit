@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Allow up to 60s for the PageSpeed Insights API call (requires Vercel Pro+)
+export const maxDuration = 60;
+
 interface PSICategory {
   score: number | null;
 }
@@ -62,7 +65,7 @@ export async function POST(req: NextRequest) {
     });
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 28000);
+    const timeout = setTimeout(() => controller.abort(), 45000);
 
     let psiRes: Response;
     try {
@@ -77,6 +80,12 @@ export async function POST(req: NextRequest) {
     if (!psiRes.ok) {
       const errBody = await psiRes.json().catch(() => ({})) as { error?: { message?: string } };
       const msg = errBody?.error?.message ?? "";
+      if (psiRes.status === 429) {
+        return NextResponse.json(
+          { error: "Rate limit reached. Please wait 30 seconds and try again." },
+          { status: 429 }
+        );
+      }
       if (psiRes.status === 400 || msg.toLowerCase().includes("invalid")) {
         return NextResponse.json(
           { error: "Couldn't reach that website. Make sure it's publicly accessible." },
@@ -84,7 +93,7 @@ export async function POST(req: NextRequest) {
         );
       }
       return NextResponse.json(
-        { error: "Analysis failed. Please try again in a moment." },
+        { error: `Analysis failed (status ${psiRes.status}). Please try again in a moment.` },
         { status: 502 }
       );
     }
@@ -246,7 +255,7 @@ export async function POST(req: NextRequest) {
     const e = err as Error;
     if (e.name === "AbortError") {
       return NextResponse.json(
-        { error: "Analysis timed out. The site may be down or very slow." },
+        { error: "Analysis timed out. The site may be very slow, or try again in a moment." },
         { status: 504 }
       );
     }
