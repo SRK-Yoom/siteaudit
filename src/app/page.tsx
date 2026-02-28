@@ -225,7 +225,8 @@ function KwDot({ present }: { present: boolean }) {
   );
 }
 
-function CheckList({ checks, gated = false }: { checks: Check[]; gated?: boolean }) {
+function CheckList({ checks, gated = false }: { checks?: Check[]; gated?: boolean }) {
+  if (!checks || checks.length === 0) return null;
   const FREE = 3;
   const visible = checks.slice(0, FREE);
   const hidden = checks.slice(FREE);
@@ -276,12 +277,12 @@ function ResultsScreen({ data, onReset }: { data: AuditData; onReset: () => void
     : { h: "Your site needs urgent attention.", s: "Critical issues are preventing search engines and AI systems from properly indexing your business." };
 
   const pillarList = [
-    { key: "performance", ...pillars.performance },
-    { key: "technicalSeo", ...pillars.technicalSeo },
-    { key: "contentKeywords", ...pillars.contentKeywords },
-    { key: "geoReadiness", ...pillars.geoReadiness },
-    { key: "aeoReadiness", ...pillars.aeoReadiness },
-    { key: "accessibility", ...pillars.accessibility },
+    { key: "performance", ...(pillars.performance ?? {}) },
+    { key: "technicalSeo", ...(pillars.technicalSeo ?? {}) },
+    { key: "contentKeywords", ...(pillars.contentKeywords ?? {}) },
+    { key: "geoReadiness", ...(pillars.geoReadiness ?? {}) },
+    { key: "aeoReadiness", ...(pillars.aeoReadiness ?? {}) },
+    { key: "accessibility", ...(pillars.accessibility ?? {}) },
   ];
 
   return (
@@ -355,7 +356,18 @@ function ResultsScreen({ data, onReset }: { data: AuditData; onReset: () => void
                       <p className="font-semibold text-sm text-white">{rec.title}</p>
                       <p className="text-sm mt-1.5 leading-relaxed text-white/50">{rec.description}</p>
                       <div className="mt-3 pt-3 border-t border-white/5">
-                        <p className="text-xs text-white/40"><span className="font-semibold text-white/60">How to fix: </span>{rec.fix}</p>
+                        <div className="flex items-start gap-2">
+                          <span className="text-xs font-semibold text-white/50 shrink-0 mt-0.5">How to fix:</span>
+                          <div className="relative flex-1 min-w-0">
+                            <p className="text-xs text-white/40 leading-snug blur-sm select-none pointer-events-none" aria-hidden="true">{rec.fix}</p>
+                            <div className="absolute inset-0 flex items-center gap-2">
+                              <Lock className="w-3 h-3 text-brand-light shrink-0" />
+                              <a href="#plans" className="text-xs font-semibold text-brand-light hover:text-white transition-colors underline underline-offset-2">
+                                Select a plan to unlock
+                              </a>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -404,8 +416,86 @@ function ResultsScreen({ data, onReset }: { data: AuditData; onReset: () => void
           </motion.div>
         )}
 
+        {/* Pricing Plans */}
+        <motion.div id="plans" className="mt-12" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.65 }}>
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-brand/10 border border-brand/20 text-brand-light text-xs font-semibold px-4 py-2 rounded-full mb-4">
+              <Lock className="w-3.5 h-3.5" />Unlock your full fix plan
+            </div>
+            <h3 className="text-2xl sm:text-3xl font-black text-white mb-2">Choose a plan. We fix everything.</h3>
+            <p className="text-white/40 text-sm max-w-md mx-auto">Our team handles the entire fix list — from technical SEO to Schema markup and AI readiness.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            {/* Starter */}
+            <div className="glass-card rounded-2xl p-6 flex flex-col">
+              <p className="text-xs font-bold text-white/30 uppercase tracking-widest mb-1">Starter</p>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="text-3xl font-black text-white">$499</span>
+                <span className="text-white/30 text-sm mb-1">/ one-time</span>
+              </div>
+              <p className="text-xs text-white/40 mb-5">Quick wins — meta, schema, speed basics</p>
+              <ul className="space-y-2 mb-6 flex-1">
+                {["Title & meta optimisation", "Basic Schema markup", "Speed quick-wins", "Full audit report PDF"].map(f => (
+                  <li key={f} className="flex items-center gap-2 text-xs text-white/60">
+                    <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />{f}
+                  </li>
+                ))}
+              </ul>
+              <a href="https://clearsight.agency/contact?plan=starter" target="_blank" rel="noopener noreferrer" className="w-full text-center text-sm font-bold py-3 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition-colors">
+                Get Started
+              </a>
+            </div>
+
+            {/* Growth — highlighted */}
+            <div className="rounded-2xl p-6 flex flex-col relative bg-gradient-to-b from-brand/20 to-brand/5 border border-brand/40">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand text-white text-xs font-bold px-3 py-1 rounded-full">Most Popular</div>
+              <p className="text-xs font-bold text-brand-light uppercase tracking-widest mb-1">Growth</p>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="text-3xl font-black text-white">$999</span>
+                <span className="text-white/30 text-sm mb-1">/ one-time</span>
+              </div>
+              <p className="text-xs text-white/40 mb-5">Full fix list for {host}</p>
+              <ul className="space-y-2 mb-6 flex-1">
+                {["Everything in Starter", "Full Technical SEO fix", "GEO & AEO Schema setup", "FAQ & HowTo schema", "Content keyword audit", "30-day results check-in"].map(f => (
+                  <li key={f} className="flex items-center gap-2 text-xs text-white/70">
+                    <CheckCircle className="w-3.5 h-3.5 text-brand-light shrink-0" />{f}
+                  </li>
+                ))}
+              </ul>
+              <a href="https://clearsight.agency/contact?plan=growth" target="_blank" rel="noopener noreferrer" className="w-full text-center text-sm font-bold py-3 rounded-xl bg-brand hover:bg-brand-dark text-white transition-colors">
+                Fix My Site <ArrowRight className="w-4 h-4 inline ml-1" />
+              </a>
+            </div>
+
+            {/* Authority */}
+            <div className="glass-card rounded-2xl p-6 flex flex-col">
+              <p className="text-xs font-bold text-white/30 uppercase tracking-widest mb-1">Authority</p>
+              <div className="flex items-end gap-1 mb-1">
+                <span className="text-3xl font-black text-white">$1,999</span>
+                <span className="text-white/30 text-sm mb-1">/ one-time</span>
+              </div>
+              <p className="text-xs text-white/40 mb-5">Complete site overhaul + 90-day support</p>
+              <ul className="space-y-2 mb-6 flex-1">
+                {["Everything in Growth", "Competitor gap analysis", "Content strategy brief", "Link building strategy", "Monthly reporting", "90-day Slack support"].map(f => (
+                  <li key={f} className="flex items-center gap-2 text-xs text-white/60">
+                    <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />{f}
+                  </li>
+                ))}
+              </ul>
+              <a href="https://clearsight.agency/contact?plan=authority" target="_blank" rel="noopener noreferrer" className="w-full text-center text-sm font-bold py-3 rounded-xl border border-white/15 text-white/70 hover:bg-white/5 transition-colors">
+                Let&apos;s Talk
+              </a>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <p className="text-white/30 text-xs">Not sure which plan? <a href="https://clearsight.agency/contact" target="_blank" rel="noopener noreferrer" className="text-brand-light hover:text-white underline underline-offset-2 transition-colors">Book a free 30-min strategy call</a> — no commitment.</p>
+          </div>
+        </motion.div>
+
         {/* CTA */}
-        <motion.div className="rounded-3xl overflow-hidden mt-10" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.65 }}>
+        <motion.div className="rounded-3xl overflow-hidden mt-10" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.75 }}>
           <div className="relative bg-gradient-to-br from-brand-dark via-brand to-violet-600 p-8 sm:p-12 text-center overflow-hidden">
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
             <div className="relative">
@@ -419,11 +509,11 @@ function ResultsScreen({ data, onReset }: { data: AuditData; onReset: () => void
                 Our team handles everything — speed optimisation, Technical SEO, Schema markup, GEO & AEO readiness. One week. Measurable results. No tech knowledge required from you.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="https://clearsight.agency/contact" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-white text-brand-dark font-bold px-8 py-4 rounded-2xl hover:bg-white/90 transition-colors text-base shadow-xl">
-                  Book a Free Strategy Call <ArrowRight className="w-5 h-5" />
+                <a href="#plans" className="inline-flex items-center justify-center gap-2 bg-white text-brand-dark font-bold px-8 py-4 rounded-2xl hover:bg-white/90 transition-colors text-base shadow-xl">
+                  See Plans & Pricing <ArrowRight className="w-5 h-5" />
                 </a>
-                <a href="https://clearsight.agency/pricing" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 border border-white/20 text-white font-semibold px-8 py-4 rounded-2xl hover:bg-white/10 transition-colors text-base">
-                  See Pricing <ChevronRight className="w-4 h-4" />
+                <a href="https://clearsight.agency/contact" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 border border-white/20 text-white font-semibold px-8 py-4 rounded-2xl hover:bg-white/10 transition-colors text-base">
+                  Free Strategy Call <ChevronRight className="w-4 h-4" />
                 </a>
               </div>
               <p className="text-white/30 text-xs mt-6">No commitment. Free 30-minute call to walk through your audit results.</p>

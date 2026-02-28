@@ -674,13 +674,17 @@ export async function POST(req: NextRequest) {
     // Keywords
     const keywords = extractKeywords(htmlAnalysis, url);
 
-    // Score all pillars
-    const perfPillar = scorePerformance(perf);
-    const techSeoPillar = scoreTechnicalSEO(lhSeo, htmlAnalysis, url, siteInfo, audits);
-    const contentPillar = scoreContentKeywords(htmlAnalysis, keywords);
-    const geoPillar = scoreGEO(htmlAnalysis, url);
-    const aeoPillar = scoreAEO(htmlAnalysis);
-    const a11yPillar = scoreAccessibility(a11y, bp);
+    // Score all pillars — each wrapped so one failure doesn't cascade
+    const safePillar = (fn: () => ReturnType<typeof scorePerformance>, max: number) => {
+      try { return fn(); }
+      catch (e) { console.error("Pillar scoring error:", e); return { score: 0, points: 0, maxPoints: max, checks: [] }; }
+    };
+    const perfPillar       = safePillar(() => scorePerformance(perf), 15);
+    const techSeoPillar    = safePillar(() => scoreTechnicalSEO(lhSeo, htmlAnalysis, url, siteInfo, audits), 22);
+    const contentPillar    = safePillar(() => scoreContentKeywords(htmlAnalysis, keywords), 15);
+    const geoPillar        = safePillar(() => scoreGEO(htmlAnalysis, url), 20);
+    const aeoPillar        = safePillar(() => scoreAEO(htmlAnalysis), 20);
+    const a11yPillar       = safePillar(() => scoreAccessibility(a11y, bp), 8);
 
     const total = perfPillar.points + techSeoPillar.points + contentPillar.points +
       geoPillar.points + aeoPillar.points + a11yPillar.points;

@@ -28,13 +28,16 @@ function getBadge(score: number): { text: string; cls: string } {
 
 export function ScorePillar({ label, description, score, points, maxPoints, delay = 0, icon }: ScorePillarProps) {
   const [width, setWidth] = useState(0);
-  const bar = getBar(score);
-  const badge = getBadge(score);
+  const safeScore = score ?? 0;
+  const safePoints = points ?? 0;
+  const safeMaxPoints = maxPoints ?? 100;
+  const bar = getBar(safeScore);
+  const badge = getBadge(safeScore);
 
   useEffect(() => {
-    const t = setTimeout(() => setWidth(score), delay);
+    const t = setTimeout(() => setWidth(safeScore), delay);
     return () => clearTimeout(t);
-  }, [score, delay]);
+  }, [safeScore, delay]);
 
   return (
     <div className="glass-card rounded-2xl p-5 flex flex-col gap-3 hover:border-white/15 transition-colors">
@@ -49,7 +52,7 @@ export function ScorePillar({ label, description, score, points, maxPoints, dela
           </div>
         </div>
         <div className="text-right shrink-0">
-          <span className="text-2xl font-black text-white tabular-nums">{score}</span>
+          <span className="text-2xl font-black text-white tabular-nums">{safeScore}</span>
           <span className="text-xs text-white/30 ml-1">/100</span>
         </div>
       </div>
@@ -67,7 +70,7 @@ export function ScorePillar({ label, description, score, points, maxPoints, dela
           {badge.text}
         </span>
         <span className="text-xs text-white/30">
-          <span className="text-white/60 font-medium">{points}</span> / {maxPoints} pts
+          <span className="text-white/60 font-medium">{safePoints}</span> / {safeMaxPoints} pts
         </span>
       </div>
     </div>
