@@ -58,11 +58,17 @@ export async function POST(req: NextRequest) {
     }
 
     const apiKey = process.env.PAGESPEED_API_KEY;
+
+    // Must explicitly request each category — PSI only returns Performance by default
     const params = new URLSearchParams({
       url,
       strategy: "mobile",
       ...(apiKey ? { key: apiKey } : {}),
     });
+    params.append("category", "performance");
+    params.append("category", "seo");
+    params.append("category", "accessibility");
+    params.append("category", "best-practices");
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
