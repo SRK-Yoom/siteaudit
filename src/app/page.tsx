@@ -505,10 +505,10 @@ export default function Home() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                   {[
                     { icon: <Zap className="w-5 h-5" />, label: "Performance", sub: "15 pts" },
-                    { icon: <Search className="w-5 h-5" />, label: "Technical SEO", sub: "25 pts" },
-                    { icon: <FileText className="w-5 h-5" />, label: "Content & Keywords", sub: "20 pts" },
+                    { icon: <Search className="w-5 h-5" />, label: "Technical SEO", sub: "22 pts" },
+                    { icon: <FileText className="w-5 h-5" />, label: "Content & Keywords", sub: "15 pts" },
                     { icon: <Globe className="w-5 h-5" />, label: "GEO Readiness", sub: "20 pts" },
-                    { icon: <Brain className="w-5 h-5" />, label: "AEO Readiness", sub: "12 pts" },
+                    { icon: <Brain className="w-5 h-5" />, label: "AEO Readiness", sub: "20 pts" },
                     { icon: <Shield className="w-5 h-5" />, label: "Accessibility", sub: "8 pts" },
                   ].map(({ icon, label, sub }, i) => (
                     <motion.div key={label} className="glass-card rounded-2xl p-4 flex flex-col items-center gap-2.5 text-center" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 + i * 0.07 }}>

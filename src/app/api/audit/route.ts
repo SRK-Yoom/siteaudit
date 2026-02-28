@@ -378,77 +378,148 @@ function scoreContentKeywords(
   return { score: Math.round((finalPts / max) * 100), points: finalPts, maxPoints: max, checks };
 }
 
+// GEO = "Will AI systems (ChatGPT, Perplexity, Google SGE) cite and recommend you?"
+// Focuses on: entity identification, structured data richness, AI-parseable content signals
 function scoreGEO(html: HTMLAnalysis, pageUrl: string): { score: number; points: number; maxPoints: number; checks: Check[] } {
   const checks: Check[] = [];
   let pts = 0;
   const max = 20;
 
-  // HTTPS (3 pts)
-  const isHTTPS = pageUrl.startsWith("https://");
-  pts += isHTTPS ? 3 : 0;
-  checks.push({ label: "HTTPS / SSL", passed: isHTTPS, detail: isHTTPS ? "Secure connection ✓ — trust signal for AI systems" : "Not secure — AI systems avoid citing HTTP sites" });
-
-  // Schema.org presence & quality (8 pts)
+  // 1. Entity schema — the #1 GEO signal (8 pts)
+  // AI needs to know WHO you are before it can cite you
   const hasAnySchema = html.schemaTypes.length > 0;
   const hasEntitySchema = html.hasOrgSchema || html.hasLocalBizSchema;
   const schemaVariety = new Set(html.schemaTypes).size;
   const schemaPts =
-    (hasAnySchema ? 2 : 0) +
-    (hasEntitySchema ? 3 : 0) +
-    (schemaVariety >= 3 ? 2 : schemaVariety >= 2 ? 1 : 0) +
-    (html.hasWebSiteSchema ? 1 : 0);
+    (hasEntitySchema ? 5 : hasAnySchema ? 2 : 0) +       // entity identity
+    (schemaVariety >= 3 ? 2 : schemaVariety >= 2 ? 1 : 0) + // schema breadth
+    (html.hasWebSiteSchema ? 1 : 0);                        // site-level signal
   pts += Math.min(schemaPts, 8);
-    checks.push({ label: "Schema.org markup", passed: hasAnySchema, detail: hasAnySchema ? `Types found: ${Array.from(new Set(html.schemaTypes)).join(", ")}` : "No Schema.org found — ChatGPT, Perplexity and Google SGE rely on this to understand your business" });
-  checks.push({ label: "Entity schema (Org/LocalBiz)", passed: hasEntitySchema, detail: hasEntitySchema ? `${html.hasOrgSchema ? "Organization" : "LocalBusiness"} schema present ✓` : "Missing Organization or LocalBusiness schema — AI systems can't identify who you are" });
+  checks.push({
+    label: "Entity schema (Org / LocalBusiness)",
+    passed: hasEntitySchema,
+    detail: hasEntitySchema
+      ? `${html.hasOrgSchema ? "Organization" : "LocalBusiness"} schema present ✓ — AI systems can now identify your business`
+      : hasAnySchema
+        ? `Schema found but no entity type — add Organization or LocalBusiness so AI knows who you are`
+        : "No Schema.org at all — ChatGPT, Perplexity, and Google SGE rely on this to identify and cite businesses",
+  });
+  checks.push({
+    label: "Schema variety & coverage",
+    passed: schemaVariety >= 2,
+    detail: schemaVariety >= 3
+      ? `${schemaVariety} schema types: ${Array.from(new Set(html.schemaTypes)).join(", ")} ✓`
+      : schemaVariety >= 1
+        ? `Only ${schemaVariety} schema type(s). Add more (e.g. Service, Product, Review) to help AI understand your full offering`
+        : "No structured data — AI systems are guessing what your site is about",
+  });
 
-  // Entity clarity (5 pts)
-  const entityPts =
-    (html.hasPhone ? 2 : 0) +
-    (html.hasEmail ? 1 : 0) +
-    (html.hasAddress ? 1 : 0) +
-    (html.hasSocialLinks ? 1 : 0);
-  pts += Math.min(entityPts, 5);
-  checks.push({ label: "Contact / entity signals", passed: entityPts >= 3, detail: `Found: ${[html.hasPhone && "phone", html.hasEmail && "email", html.hasAddress && "address", html.hasSocialLinks && "social links"].filter(Boolean).join(", ") || "none — AI systems use these to verify business identity"}` });
+  // 2. NAP consistency — Name, Address, Phone (5 pts)
+  // AI uses these to verify you're a real, legitimate entity
+  const napSignals = (html.hasPhone ? 2 : 0) + (html.hasAddress ? 2 : 0) + (html.hasEmail ? 1 : 0);
+  pts += Math.min(napSignals, 5);
+  checks.push({
+    label: "NAP signals (Name, Address, Phone)",
+    passed: napSignals >= 3,
+    detail: `Found: ${[html.hasPhone && "phone", html.hasEmail && "email", html.hasAddress && "address"].filter(Boolean).join(", ") || "none"} — AI systems cross-reference contact info to validate business legitimacy`,
+  });
 
-  // Language + hreflang + social (4 pts)
-  const signalPts =
+  // 3. Social & authority signals (4 pts)
+  // AI citations favour entities with a consistent web presence
+  const socialPts =
+    (html.hasSocialLinks ? 2 : 0) +
+    (html.ogTitle && html.ogDescription && html.ogImage ? 2 : html.ogTitle ? 1 : 0);
+  pts += Math.min(socialPts, 4);
+  checks.push({
+    label: "Social profiles & OG completeness",
+    passed: socialPts >= 3,
+    detail: `Social links: ${html.hasSocialLinks ? "found ✓" : "none"} · OG tags: ${[html.ogTitle && "title", html.ogDescription && "desc", html.ogImage && "image"].filter(Boolean).join(", ") || "missing"} — entities with consistent cross-platform presence rank higher in AI recall`,
+  });
+
+  // 4. Content clarity for AI extraction (3 pts)
+  // AI needs language signals and clear content to summarise accurately
+  const clarityPts =
     (html.language ? 1 : 0) +
-    (html.twitterCard ? 1 : 0) +
-    (html.ogType ? 1 : 0) +
-    (html.hreflang ? 1 : 0);
-  pts += Math.min(signalPts, 4);
-  checks.push({ label: "Language & social meta", passed: signalPts >= 2, detail: `Language declared: ${html.language ?? "no"} · Twitter card: ${html.twitterCard ?? "no"} · OG type: ${html.ogType ?? "no"}` });
+    (html.wordCount >= 300 ? 1 : 0) +                    // enough content to cite
+    (html.h2Tags.length >= 3 ? 1 : 0);                   // structured content sections
+  pts += Math.min(clarityPts, 3);
+  checks.push({
+    label: "Content clarity & extractability",
+    passed: clarityPts >= 2,
+    detail: `Language: ${html.language ?? "not declared"} · Word count: ~${html.wordCount} · Sections (H2s): ${html.h2Tags.length} — AI models extract summaries from well-structured, language-declared content`,
+  });
 
   const finalPts = Math.min(pts, max);
   return { score: Math.round((finalPts / max) * 100), points: finalPts, maxPoints: max, checks };
 }
 
+// AEO = "Will you appear as a direct answer — featured snippets, PAA boxes, voice results?"
+// Focuses on: FAQ/HowTo schema, question-based structure, direct answer formatting
 function scoreAEO(html: HTMLAnalysis): { score: number; points: number; maxPoints: number; checks: Check[] } {
   const checks: Check[] = [];
   let pts = 0;
-  const max = 12;
+  const max = 20;
 
-  // FAQ / HowTo schema (5 pts)
-  const schemaPts = (html.hasFAQSchema ? 4 : 0) + (html.hasHowToSchema ? 3 : 0);
-  pts += Math.min(schemaPts, 5);
-  checks.push({ label: "FAQPage schema", passed: html.hasFAQSchema, detail: html.hasFAQSchema ? "FAQPage schema present ✓ — Google shows these as rich results" : "Missing — FAQ schema enables featured snippets and AI direct answers" });
-  checks.push({ label: "HowTo schema", passed: html.hasHowToSchema, detail: html.hasHowToSchema ? "HowTo schema present ✓" : "Missing — HowTo schema triggers rich results for instructional content" });
+  // 1. Answer-trigger schema (7 pts)
+  // FAQPage and HowTo are the direct triggers for Google rich results
+  const faqPts = html.hasFAQSchema ? 5 : 0;
+  const howtoPts = html.hasHowToSchema ? 3 : 0; // can't double-count with FAQ max
+  pts += Math.min(faqPts + howtoPts, 7);
+  checks.push({
+    label: "FAQPage schema",
+    passed: html.hasFAQSchema,
+    detail: html.hasFAQSchema
+      ? "FAQPage schema present ✓ — Google surfaces these as accordion answers; AI models use them as direct citation sources"
+      : "Missing — FAQPage schema is the single highest-impact AEO action. Add Q&A pairs and mark them up with schema",
+  });
+  checks.push({
+    label: "HowTo schema",
+    passed: html.hasHowToSchema,
+    detail: html.hasHowToSchema
+      ? "HowTo schema present ✓ — triggers step-by-step rich results in Google Search and voice assistants"
+      : "Missing — if any page explains a process, mark it up with HowTo schema for featured snippet eligibility",
+  });
 
-  // Content answer structure (5 pts)
-  const hasQuestions = html.questionH2Count >= 2;
-  const hasLists = html.hasOrderedLists || html.hasUnorderedLists;
-  const structurePts =
-    (hasQuestions ? 2 : html.questionH2Count === 1 ? 1 : 0) +
-    (hasLists ? 2 : 0) +
-    (html.hasArticleSchema ? 1 : 0);
-  pts += Math.min(structurePts, 5);
-  checks.push({ label: "Question-style headings", passed: hasQuestions, detail: `${html.questionH2Count} question H2s found${hasQuestions ? " ✓ — these attract featured snippets" : " — add H2s starting with How/What/Why/Where"}` });
-  checks.push({ label: "Structured lists (UL/OL)", passed: hasLists, detail: hasLists ? "Lists present ✓ — AI models extract and cite structured content" : "No lists found — bullet/numbered answers are highly AEO-friendly" });
+  // 2. Question-based heading structure (5 pts)
+  // Google's featured snippet algorithm heavily favours H2/H3 questions followed by concise answers
+  const questionPts = html.questionH2Count >= 4 ? 5
+    : html.questionH2Count >= 2 ? 3
+    : html.questionH2Count === 1 ? 2 : 0;
+  pts += questionPts;
+  checks.push({
+    label: "Question-style headings",
+    passed: html.questionH2Count >= 2,
+    detail: `${html.questionH2Count} question-based H2s found (How/What/Why/Where/When/Can).${html.questionH2Count >= 2 ? " ✓ These directly attract featured snippets and PAA boxes." : " Add H2s phrased as questions your customers actually search — each one is a featured snippet opportunity"}`,
+  });
 
-  // Additional AEO signals (2 pts)
-  const extraPts = (html.hasBreadcrumbSchema ? 1 : 0) + (html.hasArticleSchema ? 1 : 0);
-  pts += Math.min(extraPts, 2);
-  checks.push({ label: "Breadcrumb + Article schema", passed: extraPts >= 1, detail: extraPts === 2 ? "Both present ✓" : extraPts === 1 ? "One of two present" : "Missing — breadcrumb and article schema improve AI understanding of site structure" });
+  // 3. Structured answer content (5 pts)
+  // Lists and tables are Google's preferred extraction format for snippets
+  const listPts = (html.hasOrderedLists ? 2 : 0) + (html.hasUnorderedLists ? 2 : 0);
+  pts += Math.min(listPts, 4);
+  checks.push({
+    label: "List & structured answers (UL/OL)",
+    passed: html.hasOrderedLists || html.hasUnorderedLists,
+    detail: [
+      html.hasOrderedLists && "Numbered lists ✓ (ideal for step-by-step answers)",
+      html.hasUnorderedLists && "Bullet lists ✓ (ideal for comparison/feature answers)",
+    ].filter(Boolean).join(" · ") || "No lists found — Google extracts ~40% of featured snippets from bullet or numbered lists",
+  });
+
+  // 4. Supporting schema signals (3 pts)
+  const supportPts =
+    (html.hasArticleSchema ? 1 : 0) +
+    (html.hasBreadcrumbSchema ? 1 : 0) +
+    (html.hasWebSiteSchema ? 1 : 0);
+  pts += Math.min(supportPts, 3);
+  checks.push({
+    label: "Supporting schema (Article, Breadcrumb)",
+    passed: supportPts >= 1,
+    detail: supportPts >= 2
+      ? `${[html.hasArticleSchema && "Article", html.hasBreadcrumbSchema && "Breadcrumb", html.hasWebSiteSchema && "WebSite"].filter(Boolean).join(", ")} ✓ — helps search engines understand content hierarchy`
+      : supportPts === 1
+        ? `One of three present — add Article and BreadcrumbList schema for full AEO coverage`
+        : "None found — Article and Breadcrumb schema help AI understand your content structure and authority",
+  });
 
   const finalPts = Math.min(pts, max);
   return { score: Math.round((finalPts / max) * 100), points: finalPts, maxPoints: max, checks };
@@ -459,7 +530,7 @@ function scoreAccessibility(a11y: number, bp: number): { score: number; points: 
   const bpPts = Math.round(clamp(bp, 0, 1) * 3);
   const pts = a11yPts + bpPts;
   return {
-    score: Math.round((pts / 8) * 100),
+    score: Math.round((pts / 8) * 100), // maxPoints: 8 — kept smaller intentionally; SEO/GEO/AEO are the core focus
     points: pts,
     maxPoints: 8,
     checks: [
@@ -637,12 +708,12 @@ export async function POST(req: NextRequest) {
         htmlFetchError: htmlAnalysis.fetchError,
       },
       pillars: {
-        performance: { ...perfPillar, label: "Performance", description: "Page load speed & Core Web Vitals (mobile)" },
-        technicalSeo: { ...techSeoPillar, label: "Technical SEO", description: "On-page signals, crawlability & meta tags" },
-        contentKeywords: { ...contentPillar, label: "Content & Keywords", description: "Keyword coverage, headings & content depth" },
-        geoReadiness: { ...geoPillar, label: "GEO Readiness", description: "AI search visibility — ChatGPT, Perplexity, SGE" },
-        aeoReadiness: { ...aeoPillar, label: "AEO Readiness", description: "Answer Engine Optimization — featured snippets" },
-        accessibility: { ...a11yPillar, label: "Accessibility & Tech", description: "WCAG compliance & web standards" },
+        performance: { ...perfPillar, label: "Performance", description: "Page load speed & Core Web Vitals on mobile" },
+        technicalSeo: { ...techSeoPillar, label: "Technical SEO", description: "Crawlability, meta tags, sitemap, HTTPS & alt text" },
+        contentKeywords: { ...contentPillar, label: "Content & Keywords", description: "Keyword placement, heading structure & content depth" },
+        geoReadiness: { ...geoPillar, label: "GEO Readiness", description: "Will AI systems cite you? Entity schema, NAP & authority" },
+        aeoReadiness: { ...aeoPillar, label: "AEO Readiness", description: "Featured snippets, PAA boxes & voice search answers" },
+        accessibility: { ...a11yPillar, label: "Accessibility & Tech", description: "WCAG compliance & modern web standards" },
       },
       keywords: {
         top: keywords,
