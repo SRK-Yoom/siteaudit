@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Zap, BarChart2, Globe, Shield, Lock, ArrowRight, RotateCcw,
   ExternalLink, AlertTriangle, AlertCircle, CheckCircle, ChevronRight,
   FileText, Tag, Link2, Image, CheckSquare, XSquare, MinusSquare,
-  TrendingUp, Brain, Sparkles,
+  TrendingUp, Brain, Sparkles, User, LayoutDashboard, LogOut, Save,
 } from "lucide-react";
 import { ScoreCircle } from "@/components/audit/ScoreCircle";
 import { ScorePillar } from "@/components/audit/ScorePillar";
+import { AuthModal } from "@/components/auth/AuthModal";
+import { useAuth } from "@/lib/auth-context";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -65,7 +68,15 @@ const PRIORITY_CFG = {
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-function NavBar({ onLogoClick }: { onLogoClick?: () => void }) {
+function NavBar({ onLogoClick, onSignIn, onSignUp }: {
+  onLogoClick?: () => void;
+  onSignIn: () => void;
+  onSignUp: () => void;
+}) {
+  const { user, loading, signOut } = useAuth();
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/5 bg-ink/80 backdrop-blur-xl">
       <div className="max-w-content mx-auto px-6 h-16 flex items-center justify-between">
@@ -78,10 +89,66 @@ function NavBar({ onLogoClick }: { onLogoClick?: () => void }) {
           </div>
           <span className="font-bold text-white text-lg tracking-tight group-hover:text-brand-light transition-colors">SiteScore</span>
         </button>
-        <div className="flex items-center gap-2 text-xs text-white/40">
-          <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-          Free · No signup required
-        </div>
+
+        {!loading && (
+          <div className="flex items-center gap-2">
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(v => !v)}
+                  className="flex items-center gap-2 bg-white/5 hover:bg-white/8 border border-white/10 rounded-xl px-3 py-2 transition-colors"
+                >
+                  <div className="w-6 h-6 rounded-full bg-brand/30 border border-brand/40 flex items-center justify-center">
+                    <User className="w-3.5 h-3.5 text-brand-light" />
+                  </div>
+                  <span className="text-xs text-white/70 font-medium max-w-[100px] truncate hidden sm:block">
+                    {user.user_metadata?.full_name ?? user.email?.split("@")[0]}
+                  </span>
+                </button>
+                <AnimatePresence>
+                  {menuOpen && (
+                    <motion.div
+                      className="absolute right-0 top-full mt-2 w-44 glass-card rounded-xl border border-white/10 shadow-2xl overflow-hidden"
+                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <button
+                        onClick={() => { setMenuOpen(false); router.push("/dashboard"); }}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-white/70 hover:bg-white/5 transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4" />Dashboard
+                      </button>
+                      <div className="border-t border-white/5" />
+                      <button
+                        onClick={() => { setMenuOpen(false); signOut(); }}
+                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-white/40 hover:bg-white/5 hover:text-white/60 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />Sign out
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={onSignIn}
+                  className="text-sm text-white/50 hover:text-white transition-colors font-medium px-3 py-2"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={onSignUp}
+                  className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-dark text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+                >
+                  Get Started
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );
@@ -263,7 +330,13 @@ function CheckList({ checks, gated = false }: { checks?: Check[]; gated?: boolea
   );
 }
 
-function ResultsScreen({ data, onReset }: { data: AuditData; onReset: () => void }) {
+function ResultsScreen({ data, onReset, onSavePrompt, savedToAccount }: {
+  data: AuditData;
+  onReset: () => void;
+  onSavePrompt: () => void;
+  savedToAccount: boolean;
+}) {
+  const { user } = useAuth();
   const { score, url, health, pillars, keywords, recommendations, gatedRecsCount } = data;
   const freeRecs = recommendations.slice(0, 3);
   const gatedRecs = recommendations.slice(3);
@@ -300,6 +373,44 @@ function ResultsScreen({ data, onReset }: { data: AuditData; onReset: () => void
             <RotateCcw className="w-3.5 h-3.5" />Audit another site
           </button>
         </motion.div>
+
+        {/* Save report banner */}
+        <AnimatePresence>
+          {savedToAccount ? (
+            <motion.div
+              className="mb-4 flex items-center gap-3 bg-green-500/10 border border-green-500/20 rounded-2xl px-4 py-3"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+              <p className="text-sm text-green-300 font-medium flex-1">Saved to your dashboard.</p>
+              <a href="/dashboard" className="text-xs text-green-400 hover:text-white font-semibold underline underline-offset-2 transition-colors">
+                View Dashboard →
+              </a>
+            </motion.div>
+          ) : !user && (
+            <motion.div
+              className="mb-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-brand/10 border border-brand/20 rounded-2xl px-4 py-3"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="flex items-center gap-3 flex-1">
+                <Save className="w-4 h-4 text-brand-light shrink-0" />
+                <div>
+                  <p className="text-sm text-white font-medium">Track this score over time</p>
+                  <p className="text-xs text-white/40">Save this report and see how your score improves with each fix.</p>
+                </div>
+              </div>
+              <button
+                onClick={onSavePrompt}
+                className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-dark text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors shrink-0 whitespace-nowrap"
+              >
+                Save Free <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Score hero */}
         <motion.div className="glass-card rounded-3xl p-8 sm:p-10 flex flex-col md:flex-row items-center gap-10 mb-6" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -528,12 +639,37 @@ function ResultsScreen({ data, onReset }: { data: AuditData; onReset: () => void
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const { user } = useAuth();
   const [stage, setStage] = useState<Stage>("idle");
   const [inputUrl, setInputUrl] = useState("");
   const [submittedUrl, setSubmittedUrl] = useState("");
   const [auditData, setAuditData] = useState<AuditData | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "signup">("signup");
+  const [pendingSave, setPendingSave] = useState(false);
+  const [savedToAccount, setSavedToAccount] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-save when user logs in while audit results are showing
+  useEffect(() => {
+    if (user && pendingSave && auditData) {
+      setPendingSave(false);
+      saveAudit(auditData);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, pendingSave, auditData]);
+
+  const saveAudit = async (data: AuditData) => {
+    try {
+      const res = await fetch("/api/reports/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ auditData: data }),
+      });
+      if (res.ok) setSavedToAccount(true);
+    } catch {}
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -542,6 +678,7 @@ export default function Home() {
     setSubmittedUrl(url);
     setStage("loading");
     setErrorMsg("");
+    setSavedToAccount(false);
     try {
       const res = await fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
       const data = await res.json() as AuditData & { error?: string };
@@ -549,17 +686,45 @@ export default function Home() {
       setAuditData(data);
       setStage("results");
       window.scrollTo({ top: 0, behavior: "smooth" });
+      // Auto-save if already logged in
+      if (user) saveAudit(data);
     } catch {
       setErrorMsg("Network error. Please check your connection and try again.");
       setStage("error");
     }
   };
 
-  const handleReset = () => { setStage("idle"); setInputUrl(""); setAuditData(null); setErrorMsg(""); setTimeout(() => inputRef.current?.focus(), 100); };
+  const handleReset = () => {
+    setStage("idle"); setInputUrl(""); setAuditData(null);
+    setErrorMsg(""); setSavedToAccount(false);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  const handleSavePrompt = () => {
+    setPendingSave(true);
+    setAuthMode("signup");
+    setAuthOpen(true);
+  };
+
+  const handleOpenSignIn = () => { setAuthMode("signin"); setAuthOpen(true); };
+  const handleOpenSignUp = () => { setAuthMode("signup"); setAuthOpen(true); };
 
   return (
     <div className="min-h-screen flex flex-col bg-ink">
-      <NavBar onLogoClick={stage !== "idle" ? handleReset : undefined} />
+      <NavBar
+        onLogoClick={stage !== "idle" ? handleReset : undefined}
+        onSignIn={handleOpenSignIn}
+        onSignUp={handleOpenSignUp}
+      />
+
+      <AuthModal
+        isOpen={authOpen}
+        onClose={() => setAuthOpen(false)}
+        initialMode={authMode}
+        headline={pendingSave ? "Save your audit report" : undefined}
+        subheadline={pendingSave ? "Create a free account to track your score over time." : undefined}
+        onSuccess={() => { setAuthOpen(false); }}
+      />
 
       <AnimatePresence mode="wait">
         {stage === "idle" && (
@@ -644,7 +809,7 @@ export default function Home() {
 
         {stage === "results" && auditData && (
           <motion.div key="results" className="flex-1 flex flex-col" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }}>
-            <ResultsScreen data={auditData} onReset={handleReset} />
+            <ResultsScreen data={auditData} onReset={handleReset} onSavePrompt={handleSavePrompt} savedToAccount={savedToAccount} />
           </motion.div>
         )}
       </AnimatePresence>
