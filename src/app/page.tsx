@@ -167,94 +167,151 @@ function LoadingScreen({ url }: { url: string }) {
 
 // ── Email Gate Screen ───────────────────────────────────────────────────────
 
-function EmailGateScreen({ score, url, onSubmit }: { score: number; url: string; onSubmit: (email: string) => void }) {
+function EmailGateScreen({ score, url, auditData, onReset }: {
+  score: number; url: string; auditData: AuditData; onReset: () => void;
+}) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   let host = url;
   try { host = new URL(url).hostname; } catch {}
+
+  const scoreLabel = score >= 90 ? "Excellent" : score >= 70 ? "Good" : score >= 50 ? "Needs Work" : "Critical Issues";
+  const scoreColor = score >= 90 ? "#059669" : score >= 70 ? "#7C3AED" : score >= 50 ? "#D97706" : "#DC2626";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
     setLoading(true);
-    await onSubmit(email.trim());
+    setApiError(null);
+    try {
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), url, score, auditData }),
+      });
+      const data = await res.json() as { success?: boolean; error?: string };
+      if (!res.ok || !data.success) {
+        setApiError(data.error ?? "Something went wrong. Please try again.");
+        setLoading(false);
+        return;
+      }
+      setSubmitted(true);
+    } catch {
+      setApiError("Network error. Please check your connection.");
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const scoreLabel = score >= 90 ? "Excellent" : score >= 70 ? "Good" : score >= 50 ? "Needs Work" : "Critical Issues";
-  const scoreColor = score >= 90 ? "#059669" : score >= 70 ? "#7C3AED" : score >= 50 ? "#D97706" : "#DC2626";
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center relative overflow-hidden">
-      {/* Gradient orbs */}
-      <div className="orb w-96 h-96 opacity-20 -top-24 -left-24" style={{ background: "radial-gradient(circle, #7C3AED, transparent)" }} />
-      <div className="orb w-80 h-80 opacity-15 -bottom-16 -right-16" style={{ background: "radial-gradient(circle, #DB2777, transparent)" }} />
+      <div className="absolute rounded-full pointer-events-none" style={{ width: 480, height: 480, top: -120, left: -120, background: "radial-gradient(circle, rgba(124,58,237,0.08), transparent)", filter: "blur(70px)" }} />
+      <div className="absolute rounded-full pointer-events-none" style={{ width: 380, height: 380, bottom: -80, right: -80, background: "radial-gradient(circle, rgba(219,39,119,0.07), transparent)", filter: "blur(70px)" }} />
 
       <motion.div
-        className="relative bg-white rounded-3xl p-8 sm:p-10 max-w-lg w-full shadow-2xl"
-        style={{ boxShadow: "0 32px 80px rgba(124,58,237,0.15), 0 4px 16px rgba(0,0,0,0.06)" }}
+        className="relative bg-white rounded-3xl p-8 sm:p-10 max-w-lg w-full"
+        style={{ boxShadow: "0 32px 80px rgba(124,58,237,0.14), 0 4px 16px rgba(0,0,0,0.06)" }}
         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
       >
-        {/* Gradient top bar */}
         <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ background: "linear-gradient(90deg, #7C3AED, #C026D3, #DB2777)" }} />
 
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-          style={{ background: `${scoreColor}15`, border: `2px solid ${scoreColor}30` }}>
-          <CheckCircle className="w-8 h-8" style={{ color: scoreColor }} />
-        </div>
-
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mb-3"
-          style={{ background: "rgba(124,58,237,0.08)", color: "#7C3AED", border: "1px solid rgba(124,58,237,0.15)" }}>
-          <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-          Audit complete for {host}
-        </div>
-
-        <h2 className="text-2xl sm:text-3xl font-black text-ink mb-2">
-          Your report is <span className="gradient-text">ready!</span>
-        </h2>
-        <p className="text-ink-3 text-sm leading-relaxed mb-6">
-          We found your overall score and a detailed breakdown across 6 pillars — including specific issues to fix.
-          Enter your email to view the full report.
-        </p>
-
-        {/* Score teaser */}
-        <div className="flex items-center justify-center gap-4 mb-6 p-4 rounded-2xl bg-gray-50 border border-gray-100">
-          <div>
-            <p className="text-xs text-ink-4 font-medium mb-0.5">Overall Score</p>
-            <p className="text-4xl font-black tabular-nums" style={{ color: scoreColor }}>{score}</p>
-            <p className="text-xs font-semibold mt-0.5" style={{ color: scoreColor }}>{scoreLabel}</p>
-          </div>
-          <div className="w-px h-12 bg-gray-200" />
-          <div className="text-left">
-            <p className="text-xs text-ink-4 mb-1">What&apos;s inside your report:</p>
-            {["6-pillar score breakdown", "Keyword analysis", "All fixes & recommendations"].map(item => (
-              <div key={item} className="flex items-center gap-1.5 text-xs text-ink-3 mt-1">
-                <CheckCircle className="w-3.5 h-3.5 text-brand shrink-0" />{item}
+        <AnimatePresence mode="wait">
+          {submitted ? (
+            /* ── Email sent confirmation ── */
+            <motion.div key="sent" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}
+              className="text-center py-2">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                style={{ background: "rgba(16,185,129,0.08)", border: "2px solid rgba(16,185,129,0.2)" }}>
+                <Mail className="w-7 h-7 text-green-500" />
               </div>
-            ))}
-          </div>
-        </div>
+              <h2 className="text-2xl font-black text-ink mb-2">Check your inbox!</h2>
+              <p className="text-ink-3 text-sm leading-relaxed mb-1">
+                We sent your report link to:
+              </p>
+              <p className="font-bold text-brand text-sm mb-5">{email}</p>
+              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left mb-6">
+                {["Open the email from SiteScore", "Click the secure link inside", "Your full report will load instantly"].map((step, i) => (
+                  <div key={i} className="flex items-center gap-3 mb-2 last:mb-0">
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-xs font-black text-white"
+                      style={{ background: "linear-gradient(135deg, #7C3AED, #DB2777)" }}>{i + 1}</div>
+                    <span className="text-sm text-ink-2">{step}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-ink-4 mb-4">The link expires in 7 days. Check your spam folder if you don&apos;t see it within a minute.</p>
+              <button onClick={onReset} className="text-xs text-brand hover:text-brand-dark underline underline-offset-2 transition-colors">
+                Audit a different website
+              </button>
+            </motion.div>
+          ) : (
+            /* ── Email input form ── */
+            <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.25 }}>
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                style={{ background: `${scoreColor}12`, border: `2px solid ${scoreColor}25` }}>
+                <CheckCircle className="w-7 h-7" style={{ color: scoreColor }} />
+              </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-4" />
-            <input
-              type="email" value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="your@email.com" required
-              className="input-field w-full pl-10 pr-4 py-3.5 text-sm"
-              autoFocus
-            />
-          </div>
-          <button type="submit" disabled={loading || !email.trim()} className="btn-gradient w-full flex items-center justify-center gap-2 py-3.5 text-sm">
-            {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              : <><span>View My Free Report</span><ArrowRight className="w-4 h-4" /></>}
-          </button>
-        </form>
-        <p className="text-xs text-ink-4 mt-3">
-          No spam. Unsubscribe anytime. Or{" "}
-          <button onClick={() => onSubmit("")} className="text-brand hover:text-brand-dark underline underline-offset-2 transition-colors">
-            skip for now
-          </button>
-        </p>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mb-3"
+                style={{ background: "rgba(124,58,237,0.07)", color: "#7C3AED", border: "1px solid rgba(124,58,237,0.13)" }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+                Audit complete · {host}
+              </div>
+
+              <h2 className="text-2xl sm:text-3xl font-black text-ink mb-2">
+                Your report is <span className="gradient-text">ready!</span>
+              </h2>
+              <p className="text-ink-3 text-sm leading-relaxed mb-5">
+                We&apos;ll email you a secure link to view your full report — including your score breakdown, keyword analysis, and every issue we found.
+              </p>
+
+              {/* Score teaser */}
+              <div className="flex items-center justify-center gap-4 mb-5 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                <div>
+                  <p className="text-xs text-ink-4 font-medium mb-0.5">Overall Score</p>
+                  <p className="text-4xl font-black tabular-nums" style={{ color: scoreColor }}>{score}</p>
+                  <p className="text-xs font-semibold mt-0.5" style={{ color: scoreColor }}>{scoreLabel}</p>
+                </div>
+                <div className="w-px h-12 bg-gray-200" />
+                <div className="text-left">
+                  <p className="text-xs text-ink-4 mb-1.5">Your report includes:</p>
+                  {["6-pillar score breakdown", "Keyword coverage analysis", "Prioritised fix list"].map(item => (
+                    <div key={item} className="flex items-center gap-1.5 text-xs text-ink-3 mt-1">
+                      <CheckCircle className="w-3.5 h-3.5 text-brand shrink-0" />{item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-4" />
+                  <input
+                    type="email" value={email} onChange={e => setEmail(e.target.value)}
+                    placeholder="your@email.com" required
+                    className="input-field w-full pl-10 pr-4 py-3.5 text-sm"
+                    autoFocus
+                  />
+                </div>
+                {apiError && (
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                    <p className="text-xs text-red-600">{apiError}</p>
+                  </div>
+                )}
+                <button type="submit" disabled={loading || !email.trim()} className="btn-gradient w-full flex items-center justify-center gap-2 py-3.5 text-sm">
+                  {loading
+                    ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Sending your report…</span></>
+                    : <><span>Email Me My Report</span><ArrowRight className="w-4 h-4" /></>}
+                </button>
+              </form>
+              <p className="text-xs text-ink-4 mt-3">
+                We&apos;ll send a secure link to your email. No spam, ever.
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );
@@ -1627,18 +1684,7 @@ export default function Home() {
     }
   };
 
-  const handleEmailGate = async (email: string) => {
-    if (email) {
-      try {
-        await fetch("/api/leads", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, url: submittedUrl, score: auditData?.score }),
-        });
-      } catch {}
-    }
-    setStage("results");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+  // Email gate is now self-contained — handleEmailGate removed; EmailGateScreen handles its own submission
 
   const handleReset = () => {
     setStage("idle"); setInputUrl(""); setAuditData(null);
@@ -1677,7 +1723,7 @@ export default function Home() {
 
         {stage === "email-gate" && auditData && (
           <motion.div key="email-gate" className="flex-1 flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-            <EmailGateScreen score={auditData.score} url={submittedUrl} onSubmit={handleEmailGate} />
+            <EmailGateScreen score={auditData.score} url={submittedUrl} auditData={auditData} onReset={handleReset} />
           </motion.div>
         )}
 
