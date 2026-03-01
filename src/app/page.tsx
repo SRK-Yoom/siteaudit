@@ -1023,6 +1023,367 @@ function HowItWorksSection() {
   );
 }
 
+// ── Hero Report Mockup ──────────────────────────────────────────────────────
+
+function HeroReportMockup() {
+  // Two-phase loop: scanning (0-2s) → results (2-9s) → repeat
+  const [phase, setPhase] = useState<"scanning" | "results">("scanning");
+  const [score, setScore] = useState(0);
+  const [barWidths, setBarWidths] = useState([0, 0, 0, 0, 0, 0]);
+  const [showRecs, setShowRecs] = useState(false);
+
+  const pillars = [
+    { label: "Performance", v: 52, color: "#F59E0B" },
+    { label: "Technical SEO", v: 78, color: "#7C3AED" },
+    { label: "Content", v: 65, color: "#7C3AED" },
+    { label: "GEO Readiness", v: 44, color: "#EF4444" },
+    { label: "AEO Readiness", v: 38, color: "#EF4444" },
+    { label: "Accessibility", v: 91, color: "#10B981" },
+  ];
+
+  const reset = () => {
+    setPhase("scanning"); setScore(0); setBarWidths([0,0,0,0,0,0]); setShowRecs(false);
+  };
+
+  useEffect(() => {
+    const scanTimer = setTimeout(() => {
+      setPhase("results");
+      // Count up score
+      const s = Date.now();
+      const countUp = () => {
+        const t = Math.min((Date.now() - s) / 1000, 1);
+        setScore(Math.round((1 - Math.pow(1-t, 2)) * 59));
+        if (t < 1) requestAnimationFrame(countUp);
+      };
+      requestAnimationFrame(countUp);
+      // Staggered bars
+      pillars.forEach((p, i) => {
+        setTimeout(() => {
+          const bs = Date.now();
+          const anim = () => {
+            const t = Math.min((Date.now() - bs) / 600, 1);
+            const e = 1 - Math.pow(1 - t, 3);
+            setBarWidths(prev => { const n=[...prev]; n[i]=e*p.v; return n; });
+            if (t < 1) requestAnimationFrame(anim);
+          };
+          requestAnimationFrame(anim);
+        }, 300 + i * 150);
+      });
+      setTimeout(() => setShowRecs(true), 1800);
+      // Loop
+      setTimeout(reset, 8000);
+    }, 2200);
+    return () => clearTimeout(scanTimer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  const circ = 2 * Math.PI * 38;
+  const domain = "example-business.com";
+
+  return (
+    <div className="relative">
+      {/* Subtle glow behind card */}
+      <div className="absolute inset-0 rounded-3xl opacity-25 blur-2xl pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(219,39,119,0.2))", transform: "scale(0.92) translateY(16px)" }} />
+
+      <div style={{ background: "#0F0B1E", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, overflow: "hidden", position: "relative" }}>
+        {/* Window chrome */}
+        <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", gap: 5 }}>
+            {["#FF5F57","#FFBD2E","#28CA41"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c, opacity: 0.5 }} />)}
+          </div>
+          <div style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 6, padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#28CA41", opacity: 0.7 }} />
+            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontFamily: "monospace" }}>sitescore.app · auditing {domain}</span>
+          </div>
+        </div>
+
+        <div style={{ padding: "20px 20px 24px" }}>
+          <AnimatePresence mode="wait">
+            {phase === "scanning" ? (
+              <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ textAlign: "center", padding: "16px 0" }}>
+                <div style={{ width: 40, height: 40, border: "3px solid rgba(124,58,237,0.2)", borderTopColor: "#7C3AED", borderRadius: "50%", margin: "0 auto 14px", animation: "spin 1s linear infinite" }} />
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600 }}>Scanning {domain}…</p>
+                <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
+                  {["Connecting to PageSpeed API", "Fetching HTML structure", "Analysing keywords & Schema"].map((s, i) => (
+                    <motion.div key={s} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.4 }}
+                      style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, color: "rgba(255,255,255,0.3)", justifyContent: "center" }}>
+                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#7C3AED", opacity: 0.7 }} />
+                      {s}
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+                {/* Score row */}
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                  <svg width="90" height="90" style={{ flexShrink: 0 }}>
+                    <defs>
+                      <linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#7C3AED" />
+                        <stop offset="100%" stopColor="#DB2777" />
+                      </linearGradient>
+                    </defs>
+                    <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="7" />
+                    <circle cx="45" cy="45" r="38" fill="none" stroke="url(#hg)" strokeWidth="7" strokeLinecap="round"
+                      strokeDasharray={circ} strokeDashoffset={circ - (score / 100) * circ}
+                      transform="rotate(-90 45 45)" style={{ filter: "drop-shadow(0 0 8px rgba(124,58,237,0.5))" }} />
+                    <text x="45" y="50" textAnchor="middle" fontSize="20" fontWeight="900" fill="white" fontFamily="Inter, system-ui">{score}</text>
+                  </svg>
+                  <div>
+                    <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, marginBottom: 3 }}>{domain}</p>
+                    <p style={{ color: "#F59E0B", fontSize: 13, fontWeight: 700, marginBottom: 2 }}>Needs Work</p>
+                    <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 10 }}>4 critical issues found</p>
+                  </div>
+                </div>
+
+                {/* Pillar bars */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                  {pillars.map((p, i) => (
+                    <div key={p.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, width: 90, flexShrink: 0 }}>{p.label}</span>
+                      <div style={{ flex: 1, background: "rgba(255,255,255,0.06)", borderRadius: 999, height: 5 }}>
+                        <div style={{ height: "100%", borderRadius: 999, background: p.color, width: `${barWidths[i]}%`, boxShadow: `0 0 6px ${p.color}50` }} />
+                      </div>
+                      <span style={{ color: p.color, fontSize: 10, fontWeight: 700, width: 22, textAlign: "right" }}>{Math.round(barWidths[i])}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Rec tags */}
+                <AnimatePresence>
+                  {showRecs && (
+                    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                      {[
+                        { t: "Missing Schema markup", c: "#EF4444" },
+                        { t: "Slow mobile load", c: "#F59E0B" },
+                        { t: "No FAQ schema", c: "#F59E0B" },
+                      ].map((r, i) => (
+                        <motion.span key={r.t} initial={{ opacity: 0, scale: 0.88 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }}
+                          style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: `${r.c}18`, color: r.c, border: `1px solid ${r.c}28` }}>
+                          ⚠ {r.t}
+                        </motion.span>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Product Preview Section ─────────────────────────────────────────────────
+
+function ProductPreviewSection() {
+  const [activeTab, setActiveTab] = useState(0);
+  const [manualOverride, setManualOverride] = useState(false);
+
+  // Auto-advance tabs every 5s unless user clicked manually
+  useEffect(() => {
+    if (manualOverride) return;
+    const id = setInterval(() => setActiveTab(t => (t + 1) % 3), 5000);
+    return () => clearInterval(id);
+  }, [manualOverride]);
+
+  const tabs = [
+    { label: "Score & Overview", icon: <Award className="w-4 h-4" /> },
+    { label: "6-Pillar Breakdown", icon: <BarChart2 className="w-4 h-4" /> },
+    { label: "Fix Recommendations", icon: <Target className="w-4 h-4" /> },
+  ];
+
+  return (
+    <section className="bg-white border-b border-gray-100 px-6 py-14">
+      <div className="max-w-content mx-auto">
+        <div className="text-center mb-10">
+          <p className="text-xs font-semibold text-ink-4 uppercase tracking-widest mb-2">What your report looks like</p>
+          <h2 className="text-2xl sm:text-3xl font-black text-ink">See exactly what you&apos;ll get</h2>
+          <p className="text-sm text-ink-3 mt-2 max-w-md mx-auto">Run a free audit on any website and get a detailed report like this in under 45 seconds.</p>
+        </div>
+
+        {/* Tab bar */}
+        <div className="flex justify-center mb-8">
+          <div className="inline-flex items-center bg-gray-100 rounded-2xl p-1.5 gap-1">
+            {tabs.map((tab, i) => (
+              <button key={i} onClick={() => { setActiveTab(i); setManualOverride(true); }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+                style={activeTab === i ? { background: "white", color: "#0F0A1E", boxShadow: "0 1px 4px rgba(0,0,0,0.08)" } : { color: "#9CA3AF" }}>
+                <span style={activeTab === i ? { color: "#7C3AED" } : {}}>{tab.icon}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Preview panel */}
+        <div className="max-w-3xl mx-auto">
+          {/* Window chrome */}
+          <div className="rounded-t-2xl px-4 py-3 flex items-center gap-3" style={{ background: "#1A1428" }}>
+            <div className="flex gap-1.5">
+              {["#FF5F57","#FFBD2E","#28CA41"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c, opacity: 0.5 }} />)}
+            </div>
+            <div className="flex-1 bg-white/5 border border-white/8 rounded-md px-3 py-1.5 text-xs font-mono" style={{ color: "rgba(255,255,255,0.35)" }}>
+              sitescore.app · example-business.com
+            </div>
+          </div>
+
+          <div className="rounded-b-2xl overflow-hidden" style={{ background: "#0F0B1E", border: "1px solid rgba(255,255,255,0.06)", borderTop: "none", minHeight: 320 }}>
+            <AnimatePresence mode="wait">
+              {activeTab === 0 && <PreviewTab0 key="t0" />}
+              {activeTab === 1 && <PreviewTab1 key="t1" />}
+              {activeTab === 2 && <PreviewTab2 key="t2" />}
+            </AnimatePresence>
+          </div>
+
+          <p className="text-center text-xs text-ink-4 mt-4">Sample report — your actual results will reflect your website</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PreviewTab0() {
+  const [score, setScore] = useState(0);
+  const circ = 2 * Math.PI * 52;
+  useEffect(() => {
+    const s = Date.now();
+    const anim = () => {
+      const t = Math.min((Date.now() - s) / 1100, 1);
+      setScore(Math.round((1 - Math.pow(1-t, 2)) * 73));
+      if (t < 1) requestAnimationFrame(anim);
+    };
+    requestAnimationFrame(anim);
+  }, []);
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}
+      style={{ padding: "28px 28px 32px", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "center" }}>
+        {/* Score circle */}
+        <div style={{ flexShrink: 0 }}>
+          <svg width="120" height="120">
+            <defs>
+              <linearGradient id="pg0" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#7C3AED" />
+                <stop offset="100%" stopColor="#A855F7" />
+              </linearGradient>
+            </defs>
+            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="9" />
+            <circle cx="60" cy="60" r="52" fill="none" stroke="url(#pg0)" strokeWidth="9" strokeLinecap="round"
+              strokeDasharray={circ} strokeDashoffset={circ - (score/100)*circ}
+              transform="rotate(-90 60 60)" style={{ filter: "drop-shadow(0 0 10px rgba(124,58,237,0.45))" }} />
+            <text x="60" y="65" textAnchor="middle" fontSize="26" fontWeight="900" fill="white" fontFamily="Inter,system-ui">{score}</text>
+          </svg>
+        </div>
+        {/* Verdict */}
+        <div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.2)", borderRadius: 999, padding: "4px 12px", marginBottom: 10 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#A855F7", display: "block" }} />
+            <span style={{ color: "#A855F7", fontSize: 11, fontWeight: 700 }}>Good — keep improving</span>
+          </div>
+          <p style={{ color: "white", fontSize: 18, fontWeight: 700, lineHeight: 1.3, marginBottom: 8 }}>Solid foundation — but you&apos;re leaving traffic on the table.</p>
+          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>Fixing the issues below could meaningfully boost your rankings and AI visibility.</p>
+        </div>
+      </div>
+      {/* Health strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
+        {[
+          { l: "HTTPS", v: "Secure ✓", ok: true },
+          { l: "Sitemap", v: "Found ✓", ok: true },
+          { l: "Robots.txt", v: "Valid ✓", ok: true },
+          { l: "Schema Types", v: "2 found", ok: true },
+          { l: "Domain Authority", v: "DA 28", ok: true },
+          { l: "Pages Found", v: "~140 pages", ok: true },
+        ].map(item => (
+          <div key={item.l} style={{ background: item.ok ? "rgba(16,185,129,0.07)" : "rgba(239,68,68,0.07)", border: `1px solid ${item.ok ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)"}`, borderRadius: 10, padding: "8px 12px" }}>
+            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, marginBottom: 2 }}>{item.l}</p>
+            <p style={{ color: item.ok ? "#10B981" : "#EF4444", fontSize: 12, fontWeight: 700 }}>{item.v}</p>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function PreviewTab1() {
+  const pillars = [
+    { label: "Performance", desc: "Core Web Vitals · Speed", v: 52, color: "#F59E0B", pts: "8/15" },
+    { label: "Technical SEO", desc: "Meta · Sitemap · HTTPS", v: 78, color: "#7C3AED", pts: "17/22" },
+    { label: "Content & Keywords", desc: "Placement · Depth", v: 65, color: "#A855F7", pts: "10/15" },
+    { label: "GEO Readiness", desc: "Schema · AI citations", v: 44, color: "#EF4444", pts: "9/20" },
+    { label: "AEO Readiness", desc: "FAQ · Voice · Snippets", v: 38, color: "#EF4444", pts: "8/20" },
+    { label: "Accessibility", desc: "WCAG · Best practices", v: 91, color: "#10B981", pts: "7/8" },
+  ];
+  const [widths, setWidths] = useState(pillars.map(() => 0));
+  useEffect(() => {
+    pillars.forEach((p, i) => {
+      setTimeout(() => {
+        const s = Date.now();
+        const anim = () => {
+          const t = Math.min((Date.now()-s)/600, 1);
+          const e = 1 - Math.pow(1-t,3);
+          setWidths(prev => { const n=[...prev]; n[i]=e*p.v; return n; });
+          if (t<1) requestAnimationFrame(anim);
+        };
+        requestAnimationFrame(anim);
+      }, i*120);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}
+      style={{ padding: "24px 24px 28px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 10 }}>
+        {pillars.map((p, i) => (
+          <div key={p.label} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+              <div>
+                <p style={{ color: "white", fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{p.label}</p>
+                <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{p.desc}</p>
+              </div>
+              <span style={{ fontSize: 20, fontWeight: 900, color: p.color }}>{Math.round(widths[i])}</span>
+            </div>
+            <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 999, height: 6, marginBottom: 6 }}>
+              <div style={{ height: "100%", borderRadius: 999, background: p.color, width: `${widths[i]}%`, boxShadow: `0 0 8px ${p.color}50` }} />
+            </div>
+            <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, textAlign: "right" }}>{p.pts} pts</p>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function PreviewTab2() {
+  const recs = [
+    { priority: "Critical", cat: "GEO Readiness", title: "No Organization or LocalBusiness schema", desc: "ChatGPT, Perplexity and Google AI Overviews use this schema to identify who you are. Without it, you're invisible to AI search.", color: "#EF4444" },
+    { priority: "High", cat: "AEO Readiness", title: "Missing FAQ / HowTo schema", desc: "FAQ and HowTo schema enable Google rich results and dramatically improve chances of being cited by AI systems.", color: "#F59E0B" },
+    { priority: "High", cat: "Performance", title: "Slow mobile load (LCP 4.2s)", desc: "Your Largest Contentful Paint is 4.2s on mobile. Google recommends under 2.5s. This is losing you organic traffic.", color: "#F59E0B" },
+  ];
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}
+      style={{ padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
+      {recs.map((r, i) => (
+        <motion.div key={r.title} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
+          style={{ background: `${r.color}0A`, border: `1px solid ${r.color}20`, borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999, background: `${r.color}18`, color: r.color, border: `1px solid ${r.color}25` }}>{r.priority}</span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 600 }}>{r.cat}</span>
+          </div>
+          <p style={{ color: "white", fontSize: 13, fontWeight: 700, marginBottom: 5 }}>{r.title}</p>
+          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, lineHeight: 1.6 }}>{r.desc}</p>
+          <div style={{ marginTop: 10, padding: "8px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 8, display: "flex", alignItems: "center", gap: 6 }}>
+            <Lock style={{ width: 12, height: 12, color: "#7C3AED", flexShrink: 0 }} />
+            <span style={{ fontSize: 11, color: "#A78BFA", fontWeight: 600 }}>How to fix — unlock with a plan</span>
+          </div>
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+}
+
 // ── Idle / Landing Screen ───────────────────────────────────────────────────
 
 function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef, onSignUp }: {
@@ -1034,62 +1395,74 @@ function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef, onSignUp }: {
 }) {
   return (
     <div className="flex-1 flex flex-col">
-      {/* Hero */}
-      <section className="relative flex flex-col items-center justify-center px-6 pt-16 pb-16 text-center overflow-hidden">
-        {/* Background orbs */}
-        <div className="orb w-[500px] h-[500px] opacity-[0.07] -top-32 -left-32" style={{ background: "radial-gradient(circle, #7C3AED, transparent)" }} />
-        <div className="orb w-[400px] h-[400px] opacity-[0.06] -top-16 -right-24" style={{ background: "radial-gradient(circle, #DB2777, transparent)" }} />
-        <div className="orb w-[300px] h-[300px] opacity-[0.05] bottom-0 left-1/2" style={{ background: "radial-gradient(circle, #2563EB, transparent)" }} />
+      {/* Hero — two column */}
+      <section className="relative overflow-hidden bg-white border-b border-gray-100 px-6 pt-14 pb-0">
+        <div className="max-w-content mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center pb-12 lg:pb-16">
 
-        <motion.div className="inline-flex items-center gap-2 badge-brand px-4 py-2 rounded-full mb-8" initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse" />
-          Free · Instant · No credit card required
-        </motion.div>
+            {/* Left: clean text + form */}
+            <div>
+              <motion.div className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-6"
+                style={{ background: "rgba(124,58,237,0.07)", color: "#7C3AED", border: "1px solid rgba(124,58,237,0.12)" }}
+                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+                Free · Instant · No account needed
+              </motion.div>
 
-        <motion.h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-ink leading-[1.08] tracking-tight mb-5 max-w-4xl"
-          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.05 }}>
-          Is your website ready<br />for the <span className="gradient-text">AI era?</span>
-        </motion.h1>
+              <motion.h1 className="text-4xl sm:text-5xl font-black text-ink leading-[1.1] tracking-tight mb-4"
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.05 }}>
+                Is your website ready<br />for the <span className="gradient-text">AI era?</span>
+              </motion.h1>
 
-        <motion.p className="text-lg sm:text-xl text-ink-3 max-w-xl mb-3 leading-relaxed"
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}>
-          Get your free SEO, GEO & AEO audit score in 30 seconds — with a full breakdown of what&apos;s holding you back and how much it&apos;s costing you.
-        </motion.p>
+              <motion.p className="text-base text-ink-3 max-w-md mb-7 leading-relaxed"
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+                Get a full SEO, GEO & AEO audit in under 45 seconds. See your score, what&apos;s broken, and what it&apos;s costing you.
+              </motion.p>
 
-        <motion.form onSubmit={onSubmit} className="w-full max-w-2xl"
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }}>
-          <div className="flex flex-col sm:flex-row gap-2 p-2 bg-white border border-gray-200 rounded-2xl shadow-card">
-            <div className="flex-1 relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-4 pointer-events-none" />
-              <input
-                ref={inputRef} type="text" value={inputUrl} onChange={e => setInputUrl(e.target.value)}
-                placeholder="yourwebsite.com" autoFocus spellCheck={false} autoComplete="off"
-                className="w-full pl-12 pr-4 py-3.5 bg-transparent text-ink placeholder:text-ink-4 text-base focus:outline-none rounded-xl url-input"
-              />
+              <motion.form onSubmit={onSubmit} className="w-full max-w-lg"
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}>
+                <div className="flex flex-col sm:flex-row gap-2 p-1.5 bg-white border border-gray-200 rounded-2xl shadow-card">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-4 pointer-events-none" />
+                    <input
+                      ref={inputRef} type="text" value={inputUrl} onChange={e => setInputUrl(e.target.value)}
+                      placeholder="yourwebsite.com" autoFocus spellCheck={false} autoComplete="off"
+                      className="w-full pl-11 pr-3 py-3 bg-transparent text-ink placeholder:text-ink-4 text-sm focus:outline-none rounded-xl url-input"
+                    />
+                  </div>
+                  <button type="submit" disabled={!inputUrl.trim()} className="btn-gradient inline-flex items-center justify-center gap-2 px-6 py-3 text-sm shrink-0">
+                    Get My Free Score <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.form>
+
+              <motion.div className="flex flex-wrap gap-4 mt-5"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                {[
+                  { v: "~40s", l: "full audit time" },
+                  { v: "6", l: "pillars analysed" },
+                  { v: "40+", l: "signals checked" },
+                ].map(({ v, l }) => (
+                  <div key={l} className="flex items-baseline gap-1.5">
+                    <span className="text-lg font-black text-ink">{v}</span>
+                    <span className="text-xs text-ink-4">{l}</span>
+                  </div>
+                ))}
+              </motion.div>
             </div>
-            <button type="submit" disabled={!inputUrl.trim()}
-              className="btn-gradient inline-flex items-center justify-center gap-2 px-7 py-3.5 text-base shrink-0">
-              Get My Free Score <ArrowRight className="w-4 h-4" />
-            </button>
+
+            {/* Right: animated report mockup */}
+            <motion.div className="relative lg:self-end"
+              initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
+              <HeroReportMockup />
+            </motion.div>
+
           </div>
-          <p className="text-xs text-ink-4 mt-3 text-center">Powered by Google PageSpeed Insights · Works on any public website</p>
-        </motion.form>
-
-        {/* Social proof numbers */}
-        <motion.div className="flex flex-wrap items-center justify-center gap-6 mt-10"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
-          {[
-            { v: "90+", l: "score required to rank #1 in AI search" },
-            { v: "2.3×", l: "more leads for high-scoring sites" },
-            { v: "30s", l: "to get your full report" },
-          ].map(({ v, l }) => (
-            <div key={l} className="flex items-center gap-2">
-              <span className="text-xl font-black gradient-text">{v}</span>
-              <span className="text-xs text-ink-4 max-w-[120px] leading-tight">{l}</span>
-            </div>
-          ))}
-        </motion.div>
+        </div>
       </section>
+
+      {/* Product Preview Section */}
+      <ProductPreviewSection />
 
       {/* Why it matters */}
       <section className="bg-white border-y border-gray-100 px-6 py-14">
