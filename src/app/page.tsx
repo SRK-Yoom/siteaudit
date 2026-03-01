@@ -696,6 +696,333 @@ function ResultsScreen({ data, onReset, onSavePrompt, savedToAccount, onUpgrade 
   );
 }
 
+// ── How It Works — Step Mockups ────────────────────────────────────────────
+
+function Step1Mockup() {
+  const url = "clearsight.agency";
+  const [typed, setTyped] = useState("");
+  const [showBtn, setShowBtn] = useState(false);
+
+  useEffect(() => {
+    let i = 0;
+    const t = setInterval(() => {
+      if (i < url.length) { setTyped(url.slice(0, i + 1)); i++; }
+      else { clearInterval(t); setTimeout(() => setShowBtn(true), 400); }
+    }, 65);
+    return () => clearInterval(t);
+  }, []);
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
+      <div style={{ background: "#1A1428", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, overflow: "hidden" }}>
+        {/* Browser chrome */}
+        <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", gap: 5 }}>
+            {["#FF5F57","#FFBD2E","#28CA41"].map(c => <div key={c} style={{ background: c, width: 10, height: 10, borderRadius: "50%", opacity: 0.5 }} />)}
+          </div>
+          <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 7, padding: "4px 10px", flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#28CA41", opacity: 0.6 }} />
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "monospace" }}>
+              https://{typed}<span style={{ borderRight: "1.5px solid rgba(255,255,255,0.5)", marginLeft: 1, animation: "blink 1s step-end infinite" }}>&nbsp;</span>
+            </span>
+          </div>
+        </div>
+        {/* Page */}
+        <div style={{ padding: "28px 24px" }}>
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <div style={{ height: 10, width: "55%", margin: "0 auto 8px", background: "rgba(255,255,255,0.07)", borderRadius: 5 }} />
+            <div style={{ height: 7, width: "38%", margin: "0 auto 5px", background: "rgba(255,255,255,0.04)", borderRadius: 5 }} />
+            <div style={{ height: 7, width: "28%", margin: "0 auto", background: "rgba(255,255,255,0.04)", borderRadius: 5 }} />
+          </div>
+          {/* Input */}
+          <div style={{ background: "rgba(255,255,255,0.04)", border: "1.5px solid rgba(124,58,237,0.45)", borderRadius: 12, padding: "12px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 0 24px rgba(124,58,237,0.18)" }}>
+            <div style={{ width: 14, height: 14, borderRadius: 4, background: "rgba(124,58,237,0.35)" }} />
+            <span style={{ color: typed ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.2)", fontSize: 13 }}>
+              {typed || "yourwebsite.com"}
+            </span>
+          </div>
+          <AnimatePresence>
+            {showBtn && (
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+                style={{ background: "linear-gradient(135deg, #7C3AED, #DB2777)", borderRadius: 12, padding: "12px 16px", textAlign: "center", boxShadow: "0 8px 28px rgba(124,58,237,0.45)" }}
+              >
+                <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>Get My Free Score →</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {/* skeleton rows */}
+          <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 6 }}>
+            {[70, 50, 40].map((w, i) => <div key={i} style={{ height: 6, width: `${w}%`, background: "rgba(255,255,255,0.04)", borderRadius: 4 }} />)}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function Step2Mockup() {
+  const pillars = [
+    { label: "Performance", value: 72, color: "#A855F7" },
+    { label: "Technical SEO", value: 85, color: "#10B981" },
+    { label: "Content & Keywords", value: 61, color: "#A855F7" },
+    { label: "GEO Readiness", value: 54, color: "#F59E0B" },
+    { label: "AEO Readiness", value: 48, color: "#F59E0B" },
+    { label: "Accessibility", value: 90, color: "#10B981" },
+  ];
+  const [widths, setWidths] = useState(pillars.map(() => 0));
+  const [done, setDone] = useState<boolean[]>(pillars.map(() => false));
+  const [counter, setCounter] = useState(0);
+
+  useEffect(() => {
+    pillars.forEach((p, i) => {
+      setTimeout(() => {
+        const start = Date.now();
+        const anim = () => {
+          const t = Math.min((Date.now() - start) / 700, 1);
+          const eased = 1 - Math.pow(1 - t, 3);
+          setWidths(prev => { const n = [...prev]; n[i] = eased * p.value; return n; });
+          if (t < 1) requestAnimationFrame(anim);
+          else setDone(prev => { const n = [...prev]; n[i] = true; return n; });
+        };
+        requestAnimationFrame(anim);
+      }, i * 250);
+    });
+    const cStart = Date.now();
+    const cAnim = () => {
+      const t = Math.min((Date.now() - cStart) / 2400, 1);
+      setCounter(Math.round(t * 40));
+      if (t < 1) requestAnimationFrame(cAnim);
+    };
+    requestAnimationFrame(cAnim);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
+      <div style={{ background: "#1A1428", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "24px" }}>
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#A855F7", boxShadow: "0 0 8px #A855F7" }} className="animate-pulse" />
+            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600 }}>Scanning signals…</span>
+          </div>
+          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontVariantNumeric: "tabular-nums" }}>{counter} / 40</span>
+        </div>
+        {/* Progress bars */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+          {pillars.map((p, i) => (
+            <div key={p.label}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
+                <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, fontWeight: 600 }}>{p.label}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <span style={{ color: p.color, fontSize: 11, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                    {Math.round(widths[i])}
+                  </span>
+                  <AnimatePresence>
+                    {done[i] && (
+                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ fontSize: 11 }}>✓</motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 999, height: 6, overflow: "hidden" }}>
+                <div style={{ height: "100%", borderRadius: 999, background: p.color, width: `${widths[i]}%`, transition: "none", boxShadow: `0 0 8px ${p.color}60` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function Step3Mockup() {
+  const [score, setScore] = useState(0);
+  const [barWidths, setBarWidths] = useState([0, 0, 0]);
+  const [showRecs, setShowRecs] = useState(false);
+  const targetScore = 67;
+  const bars = [
+    { label: "Technical SEO", v: 72, color: "#A855F7" },
+    { label: "GEO Readiness", v: 54, color: "#F59E0B" },
+    { label: "Performance", v: 81, color: "#10B981" },
+  ];
+
+  useEffect(() => {
+    const sStart = Date.now();
+    const sAnim = () => {
+      const t = Math.min((Date.now() - sStart) / 1200, 1);
+      const eased = 1 - Math.pow(1 - t, 2);
+      setScore(Math.round(eased * targetScore));
+      if (t < 1) requestAnimationFrame(sAnim);
+      else setTimeout(() => setShowRecs(true), 300);
+    };
+    requestAnimationFrame(sAnim);
+    bars.forEach((b, i) => {
+      setTimeout(() => {
+        const bStart = Date.now();
+        const bAnim = () => {
+          const t = Math.min((Date.now() - bStart) / 700, 1);
+          const eased = 1 - Math.pow(1 - t, 3);
+          setBarWidths(prev => { const n = [...prev]; n[i] = eased * b.v; return n; });
+          if (t < 1) requestAnimationFrame(bAnim);
+        };
+        requestAnimationFrame(bAnim);
+      }, 400 + i * 220);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const circ = 2 * Math.PI * 32;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
+      <div style={{ background: "#1A1428", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 24 }}>
+        {/* Score row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20, paddingBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ position: "relative", width: 80, height: 80, flexShrink: 0 }}>
+            <svg width="80" height="80">
+              <defs>
+                <linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#7C3AED" />
+                  <stop offset="100%" stopColor="#DB2777" />
+                </linearGradient>
+              </defs>
+              <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="7" />
+              <circle cx="40" cy="40" r="32" fill="none" stroke="url(#g3)" strokeWidth="7" strokeLinecap="round"
+                strokeDasharray={circ} strokeDashoffset={circ - (score / 100) * circ}
+                transform="rotate(-90 40 40)" style={{ filter: "drop-shadow(0 0 8px rgba(168,85,247,0.5))" }} />
+              <text x="40" y="44" textAnchor="middle" fontSize="18" fontWeight="900" fill="white" fontFamily="Inter, system-ui">{score}</text>
+            </svg>
+          </div>
+          <div>
+            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginBottom: 3 }}>Overall Score</p>
+            <p style={{ color: "#F59E0B", fontSize: 14, fontWeight: 700, marginBottom: 3 }}>Needs Work</p>
+            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>3 critical issues found</p>
+          </div>
+        </div>
+        {/* Mini pillar bars */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+          {bars.map((b, i) => (
+            <div key={b.label}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>{b.label}</span>
+                <span style={{ color: b.color, fontSize: 11, fontWeight: 700 }}>{Math.round(barWidths[i])}</span>
+              </div>
+              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 999, height: 5 }}>
+                <div style={{ height: "100%", borderRadius: 999, background: b.color, width: `${barWidths[i]}%`, boxShadow: `0 0 6px ${b.color}50` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Recommendation tags */}
+        <AnimatePresence>
+          {showRecs && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {[
+                { label: "Missing Schema markup", color: "#EF4444" },
+                { label: "Slow mobile load", color: "#F59E0B" },
+                { label: "No FAQ schema", color: "#F59E0B" },
+              ].map((r, i) => (
+                <motion.span key={r.label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.12 }}
+                  style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: `${r.color}18`, color: r.color, border: `1px solid ${r.color}28` }}>
+                  ⚠ {r.label}
+                </motion.span>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── How It Works Section ────────────────────────────────────────────────────
+
+function HowItWorksSection() {
+  const [activeStep, setActiveStep] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    setProgress(0);
+    const duration = 4500;
+    const start = Date.now();
+    let rafId: number;
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      const p = Math.min((elapsed / duration) * 100, 100);
+      setProgress(p);
+      if (p < 100) rafId = requestAnimationFrame(tick);
+      else setActiveStep(s => (s + 1) % 3);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [activeStep]);
+
+  const steps = [
+    { title: "Enter your website URL", desc: "Just paste your URL — no sign-up, no credit card. We start the scan immediately." },
+    { title: "We scan 40+ signals in real time", desc: "PageSpeed analysis, HTML scraping, keyword extraction, Schema checks, robots.txt, and more — all in under 45 seconds." },
+    { title: "Get your score + prioritised fix list", desc: "A detailed score across 6 pillars with specific issues ranked by impact, so you know exactly what to fix first." },
+  ];
+
+  return (
+    <section className="relative overflow-hidden" style={{ background: "#0B0918" }}>
+      {/* Orbs */}
+      <div className="absolute rounded-full pointer-events-none" style={{ width: 500, height: 500, top: -100, left: -100, background: "radial-gradient(circle, rgba(124,58,237,0.25), transparent)", filter: "blur(80px)" }} />
+      <div className="absolute rounded-full pointer-events-none" style={{ width: 400, height: 400, bottom: -80, right: -80, background: "radial-gradient(circle, rgba(219,39,119,0.2), transparent)", filter: "blur(80px)" }} />
+
+      <div className="max-w-content mx-auto px-6 py-20 relative">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
+
+          {/* Left: step navigator */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest mb-5" style={{ color: "rgba(255,255,255,0.3)" }}>How it works</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-white mb-10 leading-tight">
+              See your website through<br />
+              <span className="gradient-text">a search engine&apos;s eyes</span>
+            </h2>
+            <div className="space-y-3">
+              {steps.map((step, i) => {
+                const isActive = activeStep === i;
+                return (
+                  <button key={i} onClick={() => setActiveStep(i)}
+                    className="w-full text-left rounded-2xl transition-all duration-300 relative overflow-hidden"
+                    style={{ padding: "16px 20px", background: isActive ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.02)", border: `1px solid ${isActive ? "rgba(124,58,237,0.35)" : "rgba(255,255,255,0.05)"}` }}>
+                    {/* Progress underline */}
+                    {isActive && (
+                      <div className="absolute bottom-0 left-0 h-0.5" style={{ background: "linear-gradient(90deg, #7C3AED, #DB2777)", width: `${progress}%` }} />
+                    )}
+                    <div className="flex items-start gap-4">
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 text-xs font-black transition-all duration-300"
+                        style={isActive ? { background: "linear-gradient(135deg, #7C3AED, #DB2777)", color: "white" } : { background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.25)" }}>
+                        {i + 1}
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm transition-colors duration-300" style={{ color: isActive ? "white" : "rgba(255,255,255,0.35)" }}>{step.title}</p>
+                        <p className="text-xs mt-1.5 leading-relaxed transition-colors duration-300" style={{ color: isActive ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.18)" }}>{step.desc}</p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right: animated mockup */}
+          <div>
+            <AnimatePresence mode="wait">
+              {activeStep === 0 && <Step1Mockup key="s1" />}
+              {activeStep === 1 && <Step2Mockup key="s2" />}
+              {activeStep === 2 && <Step3Mockup key="s3" />}
+            </AnimatePresence>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Idle / Landing Screen ───────────────────────────────────────────────────
 
 function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef, onSignUp }: {
@@ -791,33 +1118,7 @@ function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef, onSignUp }: {
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="px-6 py-14">
-        <div className="max-w-content mx-auto">
-          <div className="text-center mb-10">
-            <p className="text-xs font-semibold text-ink-4 uppercase tracking-widest mb-2">How it works</p>
-            <h2 className="text-2xl sm:text-3xl font-black text-ink">Your audit in <span className="gradient-text">3 simple steps</span></h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {[
-              { step: "01", icon: <Search className="w-6 h-6" />, title: "Enter your URL", desc: "Just paste your website URL above. No account needed. No credit card. Nothing to install." },
-              { step: "02", icon: <Brain className="w-6 h-6" />, title: "We analyse 6 pillars", desc: "Our engine runs PageSpeed analysis, scrapes your HTML, checks Schema markup, keywords, robots.txt, and 40+ signals." },
-              { step: "03", icon: <Target className="w-6 h-6" />, title: "Get your score + fix plan", desc: "Receive a detailed score across SEO, GEO, AEO, Performance and more — with prioritised recommendations." },
-            ].map(({ step, icon, title, desc }, i) => (
-              <motion.div key={step} className="flex flex-col items-center text-center relative"
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.1 }}>
-                {i < 2 && <div className="hidden sm:block absolute top-8 left-[60%] w-[40%] h-px border-t-2 border-dashed border-gray-200" />}
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 relative" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.1), rgba(219,39,119,0.06))", border: "1px solid rgba(124,58,237,0.15)" }}>
-                  <div className="text-brand">{icon}</div>
-                  <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white" style={{ background: "linear-gradient(135deg, #7C3AED, #DB2777)" }}>{i + 1}</div>
-                </div>
-                <h3 className="font-bold text-ink mb-2">{title}</h3>
-                <p className="text-sm text-ink-3 leading-relaxed">{desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HowItWorksSection />
 
       {/* What we analyse */}
       <section className="bg-white border-y border-gray-100 px-6 py-14">
