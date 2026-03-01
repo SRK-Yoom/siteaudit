@@ -89,9 +89,9 @@ function Sidebar({ activeTab, onTab, onSignOut, userName }: {
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-white/5 bg-ink min-h-screen sticky top-0">
+    <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-gray-100 bg-surface min-h-screen sticky top-0">
       {/* Logo */}
-      <div className="px-5 h-16 flex items-center border-b border-white/5">
+      <div className="px-5 h-16 flex items-center border-b border-gray-100">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center shrink-0">
             <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
@@ -112,7 +112,7 @@ function Sidebar({ activeTab, onTab, onSignOut, userName }: {
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
               activeTab === id
                 ? "bg-brand/15 text-brand-light border border-brand/20"
-                : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                : "text-ink-3 hover:text-ink-2 hover:bg-gray-50"
             }`}
           >
             <Icon className="w-4 h-4 shrink-0" />
@@ -122,14 +122,14 @@ function Sidebar({ activeTab, onTab, onSignOut, userName }: {
       </nav>
 
       {/* User */}
-      <div className="px-3 py-4 border-t border-white/5">
+      <div className="px-3 py-4 border-t border-gray-100">
         <div className="px-3 py-2 mb-1">
-          <p className="text-xs font-semibold text-white/70 truncate">{userName}</p>
+          <p className="text-xs font-semibold text-ink-2 truncate">{userName}</p>
           <span className="text-xs bg-brand/15 text-brand-light border border-brand/20 px-1.5 py-0.5 rounded font-bold">Free</span>
         </div>
         <button
           onClick={onSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/30 hover:text-white/60 hover:bg-white/5 transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-ink-4 hover:text-ink-2 hover:bg-gray-50 transition-all"
         >
           <LogOut className="w-4 h-4 shrink-0" />
           Sign out
@@ -161,17 +161,17 @@ function OverviewTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Latest score */}
-        <motion.div className="glass-card rounded-2xl p-4" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <p className="text-xs text-white/40 font-medium mb-1">Latest Score</p>
+        <motion.div className="card rounded-2xl p-4" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <p className="text-xs text-ink-3 font-medium mb-1">Latest Score</p>
           <p className={`text-3xl font-black tabular-nums ${latest ? scoreColor(latest.overall_score) : "text-white/20"}`}>
             {latest?.overall_score ?? "—"}
           </p>
-          {latest && <p className="text-xs text-white/30 mt-1">{scoreLabel(latest.overall_score)}</p>}
+          {latest && <p className="text-xs text-ink-4 mt-1">{scoreLabel(latest.overall_score)}</p>}
         </motion.div>
 
         {/* Change */}
-        <motion.div className="glass-card rounded-2xl p-4" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <p className="text-xs text-white/40 font-medium mb-1">vs Last Audit</p>
+        <motion.div className="card rounded-2xl p-4" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <p className="text-xs text-ink-3 font-medium mb-1">vs Last Audit</p>
           <div className="flex items-center gap-1">
             {diff === null
               ? <p className="text-3xl font-black text-white/20">—</p>
@@ -179,33 +179,33 @@ function OverviewTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit
                 ? <><ArrowUpRight className="w-5 h-5 text-green-400" /><p className="text-3xl font-black text-green-400 tabular-nums">+{diff}</p></>
                 : diff < 0
                   ? <><ArrowDownRight className="w-5 h-5 text-red-400" /><p className="text-3xl font-black text-red-400 tabular-nums">{diff}</p></>
-                  : <><Minus className="w-5 h-5 text-white/30" /><p className="text-3xl font-black text-white/30 tabular-nums">0</p></>
+                  : <><Minus className="w-5 h-5 text-ink-4" /><p className="text-3xl font-black text-ink-4 tabular-nums">0</p></>
             }
           </div>
-          <p className="text-xs text-white/30 mt-1">pts change</p>
+          <p className="text-xs text-ink-4 mt-1">pts change</p>
         </motion.div>
 
         {/* Total audits */}
-        <motion.div className="glass-card rounded-2xl p-4" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <p className="text-xs text-white/40 font-medium mb-1">Total Audits</p>
+        <motion.div className="card rounded-2xl p-4" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <p className="text-xs text-ink-3 font-medium mb-1">Total Audits</p>
           <p className="text-3xl font-black text-white tabular-nums">{audits.length}</p>
-          <p className="text-xs text-white/30 mt-1">reports saved</p>
+          <p className="text-xs text-ink-4 mt-1">reports saved</p>
         </motion.div>
 
         {/* Last audited */}
-        <motion.div className="glass-card rounded-2xl p-4" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <p className="text-xs text-white/40 font-medium mb-1">Last Audited</p>
+        <motion.div className="card rounded-2xl p-4" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <p className="text-xs text-ink-3 font-medium mb-1">Last Audited</p>
           <p className="text-lg font-black text-white leading-tight mt-1">{latest ? formatShortDate(latest.created_at) : "—"}</p>
-          {latest && <p className="text-xs text-white/30 mt-1 truncate">{latest.data?.health?.domain ?? latest.url}</p>}
+          {latest && <p className="text-xs text-ink-4 mt-1 truncate">{latest.data?.health?.domain ?? latest.url}</p>}
         </motion.div>
       </div>
 
       {/* Score history chart */}
-      <motion.div className="glass-card rounded-2xl p-5" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+      <motion.div className="card rounded-2xl p-5" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-sm font-semibold text-white">Score History</h3>
-            <p className="text-xs text-white/30 mt-0.5">Your overall score over the last {chartData.length} audit{chartData.length !== 1 ? "s" : ""}</p>
+            <p className="text-xs text-ink-4 mt-0.5">Your overall score over the last {chartData.length} audit{chartData.length !== 1 ? "s" : ""}</p>
           </div>
           <button
             onClick={onNewAudit}
@@ -220,21 +220,21 @@ function OverviewTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit
       {/* Pillar breakdown */}
       {pillarList.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">Latest Score Breakdown</h3>
+          <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-widest mb-3">Latest Score Breakdown</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {pillarList.map(([key, pillar]) => (
-              <div key={key} className="glass-card rounded-xl p-3.5">
+              <div key={key} className="card rounded-xl p-3.5">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center text-white/50 shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-ink-3 shrink-0">
                     {PILLAR_ICONS[key]}
                   </div>
-                  <span className="text-xs font-semibold text-white/60 leading-tight">{pillar.label}</span>
+                  <span className="text-xs font-semibold text-ink-2 leading-tight">{pillar.label}</span>
                 </div>
                 <div className="flex items-end justify-between">
                   <p className={`text-2xl font-black tabular-nums ${scoreColor(pillar.score)}`}>{pillar.score}</p>
-                  <span className="text-xs text-white/30 mb-0.5">/100</span>
+                  <span className="text-xs text-ink-4 mb-0.5">/100</span>
                 </div>
-                <div className="mt-2 h-1 bg-white/5 rounded-full overflow-hidden">
+                <div className="mt-2 h-1 bg-gray-50 rounded-full overflow-hidden">
                   <div className="h-full bg-brand/60 rounded-full" style={{ width: `${pillar.score}%` }} />
                 </div>
               </div>
@@ -246,7 +246,7 @@ function OverviewTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit
       {/* Recommendations — FULLY UNGATED for members */}
       {recs.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-          <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-3">What to Fix First</h3>
+          <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-widest mb-3">What to Fix First</h3>
           <div className="space-y-3">
             {recs.map((rec, i) => {
               const pkey = rec.priority as "critical" | "high" | "medium";
@@ -265,14 +265,14 @@ function OverviewTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${cfg.badge}`}>{rec.priority.charAt(0).toUpperCase() + rec.priority.slice(1)}</span>
-                        <span className="text-xs text-white/30">{rec.category}</span>
+                        <span className="text-xs text-ink-4">{rec.category}</span>
                       </div>
                       <p className="font-semibold text-sm text-white">{rec.title}</p>
-                      <p className="text-sm mt-1 leading-relaxed text-white/50">{rec.description}</p>
+                      <p className="text-sm mt-1 leading-relaxed text-ink-3">{rec.description}</p>
                       {/* UNGATED: How to fix is fully visible for members */}
-                      <div className="mt-3 pt-3 border-t border-white/5">
-                        <p className="text-xs text-white/50 leading-relaxed">
-                          <span className="font-semibold text-white/70">How to fix: </span>
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <p className="text-xs text-ink-3 leading-relaxed">
+                          <span className="font-semibold text-ink-2">How to fix: </span>
                           {rec.fix}
                         </p>
                       </div>
@@ -288,7 +288,7 @@ function OverviewTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit
       {/* Empty state */}
       {audits.length === 0 && (
         <motion.div
-          className="glass-card rounded-3xl p-12 text-center"
+          className="card rounded-3xl p-12 text-center"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -297,7 +297,7 @@ function OverviewTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit
             <TrendingUp className="w-8 h-8 text-brand-light" />
           </div>
           <h3 className="text-xl font-bold text-white mb-2">Run your first audit</h3>
-          <p className="text-white/40 text-sm max-w-xs mx-auto mb-6">
+          <p className="text-ink-3 text-sm max-w-xs mx-auto mb-6">
             Enter your website URL on the homepage to generate your first score report.
             It takes about 30 seconds.
           </p>
@@ -319,7 +319,7 @@ function ReportsTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit:
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-semibold text-white/40 uppercase tracking-widest">All Reports ({audits.length})</h3>
+        <h3 className="text-xs font-semibold text-ink-3 uppercase tracking-widest">All Reports ({audits.length})</h3>
         <button
           onClick={onNewAudit}
           className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-dark text-white text-xs font-bold px-3 py-2 rounded-xl transition-colors"
@@ -329,8 +329,8 @@ function ReportsTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit:
       </div>
 
       {audits.length === 0 ? (
-        <div className="glass-card rounded-2xl p-10 text-center">
-          <p className="text-white/30 text-sm">No reports yet. Run your first audit to get started.</p>
+        <div className="card rounded-2xl p-10 text-center">
+          <p className="text-ink-4 text-sm">No reports yet. Run your first audit to get started.</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -339,7 +339,7 @@ function ReportsTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit:
             return (
               <motion.div
                 key={audit.id}
-                className="glass-card rounded-2xl p-4 flex items-center gap-4 hover:border-white/12 transition-colors group"
+                className="card rounded-2xl p-4 flex items-center gap-4 hover:border-white/12 transition-colors group"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
@@ -350,7 +350,7 @@ function ReportsTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit:
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{domain}</p>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <p className="text-xs text-white/30">{formatDate(audit.created_at)}</p>
+                    <p className="text-xs text-ink-4">{formatDate(audit.created_at)}</p>
                     <span className={`text-xs font-semibold ${scoreColor(audit.overall_score)}`}>{scoreLabel(audit.overall_score)}</span>
                   </div>
                 </div>
@@ -369,12 +369,12 @@ function ReportsTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit:
                   href={audit.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white/20 hover:text-white/60 transition-colors"
+                  className="text-white/20 hover:text-ink-2 transition-colors"
                   onClick={e => e.stopPropagation()}
                 >
                   <ExternalLink className="w-4 h-4" />
                 </a>
-                <ChevronRight className="w-4 h-4 text-white/15 group-hover:text-white/40 transition-colors" />
+                <ChevronRight className="w-4 h-4 text-white/15 group-hover:text-ink-3 transition-colors" />
               </motion.div>
             );
           })}
@@ -389,19 +389,19 @@ function ReportsTab({ audits, onNewAudit }: { audits: AuditRecord[]; onNewAudit:
 function SettingsTab({ user }: { user: { email?: string; user_metadata?: { full_name?: string } } }) {
   return (
     <div className="max-w-lg space-y-6">
-      <div className="glass-card rounded-2xl p-6">
+      <div className="card rounded-2xl p-6">
         <h3 className="text-sm font-semibold text-white mb-4">Account</h3>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-white/40 font-medium">Name</label>
+            <label className="text-xs text-ink-3 font-medium">Name</label>
             <p className="text-sm text-white mt-1">{user.user_metadata?.full_name ?? "—"}</p>
           </div>
           <div>
-            <label className="text-xs text-white/40 font-medium">Email</label>
+            <label className="text-xs text-ink-3 font-medium">Email</label>
             <p className="text-sm text-white mt-1">{user.email}</p>
           </div>
           <div>
-            <label className="text-xs text-white/40 font-medium">Plan</label>
+            <label className="text-xs text-ink-3 font-medium">Plan</label>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-sm text-white">Free</span>
               <Link href="/#plans" className="text-xs text-brand-light hover:text-white transition-colors underline underline-offset-2">Upgrade</Link>
@@ -410,11 +410,11 @@ function SettingsTab({ user }: { user: { email?: string; user_metadata?: { full_
         </div>
       </div>
 
-      <div className="glass-card rounded-2xl p-6">
+      <div className="card rounded-2xl p-6">
         <h3 className="text-sm font-semibold text-white mb-2">Coming Soon</h3>
         <div className="space-y-2">
           {["Industry benchmarking", "Competitor Radar", "Weekly email digest", "Conversion Intelligence score", "GA4 / GTM setup check"].map(f => (
-            <div key={f} className="flex items-center gap-2 text-sm text-white/40">
+            <div key={f} className="flex items-center gap-2 text-sm text-ink-3">
               <Lock className="w-3.5 h-3.5 text-brand-light shrink-0" />
               {f}
             </div>
@@ -456,8 +456,8 @@ export default function DashboardPage() {
 
   if (authLoading || fetching) {
     return (
-      <div className="min-h-screen bg-ink flex items-center justify-center">
-        <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-brand animate-spin" />
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-2 border-gray-200 border-t-brand animate-spin" />
       </div>
     );
   }
@@ -467,7 +467,7 @@ export default function DashboardPage() {
   const userName = user.user_metadata?.full_name ?? user.email ?? "Member";
 
   return (
-    <div className="min-h-screen bg-ink flex">
+    <div className="min-h-screen bg-surface flex">
       <Sidebar
         activeTab={activeTab}
         onTab={setActiveTab}
@@ -476,7 +476,7 @@ export default function DashboardPage() {
       />
 
       {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 inset-x-0 z-50 border-b border-white/5 bg-ink/90 backdrop-blur-xl px-4 h-14 flex items-center justify-between">
+      <div className="md:hidden fixed top-0 inset-x-0 z-50 border-b border-gray-100 bg-surface/90 backdrop-blur-xl px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-6 h-6 rounded-md bg-brand flex items-center justify-center">
             <svg viewBox="0 0 20 20" fill="none" className="w-4 h-4">
@@ -496,11 +496,11 @@ export default function DashboardPage() {
       {/* Main content */}
       <main className="flex-1 min-w-0 pt-0 md:pt-0">
         {/* Header */}
-        <div className="sticky top-0 z-40 border-b border-white/5 bg-ink/80 backdrop-blur-xl px-6 md:px-8 h-16 flex items-center justify-between mt-14 md:mt-0">
+        <div className="sticky top-0 z-40 border-b border-gray-100 bg-surface/80 backdrop-blur-xl px-6 md:px-8 h-16 flex items-center justify-between mt-14 md:mt-0">
           <div>
             <h1 className="text-sm font-semibold text-white capitalize">{activeTab}</h1>
             {audits[0] && (
-              <p className="text-xs text-white/30">
+              <p className="text-xs text-ink-4">
                 {audits[0].data?.health?.domain ?? "your website"}
               </p>
             )}
@@ -508,7 +508,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={fetchAudits}
-              className="p-2 rounded-lg hover:bg-white/5 text-white/30 hover:text-white/60 transition-colors"
+              className="p-2 rounded-lg hover:bg-gray-50 text-ink-4 hover:text-ink-2 transition-colors"
               title="Refresh"
             >
               <RefreshCw className="w-4 h-4" />
@@ -523,7 +523,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Mobile bottom tabs */}
-        <div className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-white/5 bg-ink/95 backdrop-blur-xl flex">
+        <div className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-gray-100 bg-surface/95 backdrop-blur-xl flex">
           {[
             { id: "overview", icon: LayoutDashboard, label: "Overview" },
             { id: "reports", icon: FileText, label: "Reports" },
@@ -533,7 +533,7 @@ export default function DashboardPage() {
               key={id}
               onClick={() => setActiveTab(id)}
               className={`flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium transition-colors ${
-                activeTab === id ? "text-brand-light" : "text-white/30"
+                activeTab === id ? "text-brand-light" : "text-ink-4"
               }`}
             >
               <Icon className="w-5 h-5" />
