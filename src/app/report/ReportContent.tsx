@@ -595,9 +595,9 @@ export function ReportContent({ auditData, email, url, token }: {
                 className="inline-flex items-center gap-2 bg-white text-[#6D28D9] font-bold px-8 py-4 rounded-2xl hover:bg-white/90 transition-colors text-base shadow-xl">
                 Get Started — It&apos;s Free <ArrowRight className="w-5 h-5" />
               </button>
-              <div className="flex items-center justify-center gap-4 mt-5">
-                {[<RotateCcw className="w-3.5 h-3.5" />, <a href="/" className="text-white/60 text-xs hover:text-white/80 flex items-center gap-1.5 transition-colors"><RotateCcw className="w-3.5 h-3.5" />Run another audit</a>].slice(1)}
-              </div>
+              <a href="/" className="inline-flex items-center gap-1.5 mt-5 text-white/60 text-xs hover:text-white/80 transition-colors">
+                <RotateCcw className="w-3.5 h-3.5" />Run another audit
+              </a>
             </div>
           </motion.div>
 
