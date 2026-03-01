@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       <!-- Footer -->
       <div style="background:#F9F8FF;padding:20px 40px;border-top:1px solid rgba(124,58,237,0.08);text-align:center">
         <p style="margin:0;color:#9CA3AF;font-size:12px">
-          Sent by <strong style="color:#7C3AED">SiteScore</strong> by Clearsight Agency &nbsp;·&nbsp;
+          Sent by <strong style="color:#7C3AED">SiteScore</strong> by Yoom Digital &nbsp;·&nbsp;
           <a href="${baseUrl}" style="color:#9CA3AF;text-decoration:none">sitescore.app</a>
         </p>
       </div>

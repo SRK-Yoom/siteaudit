@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, Zap, BarChart2, Globe, Shield, Lock, ArrowRight, RotateCcw,
+  Search, Zap, BarChart2, Globe, Shield, Lock, ArrowRight, RotateCcw, Code2,
   ExternalLink, AlertTriangle, AlertCircle, CheckCircle, ChevronRight,
   FileText, Tag, Link2, CheckSquare, XSquare, MinusSquare,
   TrendingUp, Brain, Sparkles, User, LayoutDashboard, LogOut, Save,
@@ -24,11 +25,12 @@ interface Keyword { word: string; count: number; inTitle: boolean; inH1: boolean
 interface AuditData {
   score: number; url: string;
   health: { domain: string; isHTTPS: boolean; pageCount: number | null; hasRobots: boolean; hasSitemap: boolean; blockedByCrawlers: boolean; criticalIssues: number; highIssues: number; totalIssues: number; schemaTypesFound: string[]; htmlFetchError: boolean };
-  pillars: { performance: PillarData; technicalSeo: PillarData; contentKeywords: PillarData; geoReadiness: PillarData; aeoReadiness: PillarData; accessibility: PillarData };
+  pillars: { performance: PillarData; technicalSeo: PillarData; contentKeywords: PillarData; geoReadiness: PillarData; aeoReadiness: PillarData; accessibility: PillarData; cro: PillarData; analytics: PillarData };
   keywords: { top: Keyword[]; coverageScore: number };
   recommendations: Recommendation[];
   gatedRecsCount: number;
 }
+interface StreamHealth { domain: string; isHTTPS: boolean; hasRobots: boolean; hasSitemap: boolean; pageCount: number | null; schemaTypesFound: string[]; htmlFetchError: boolean; blockedByCrawlers: boolean }
 type Stage = "idle" | "loading" | "email-gate" | "results" | "error";
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -48,6 +50,8 @@ const PILLAR_ICONS: Record<string, React.ReactNode> = {
   geoReadiness: <Globe className="w-4 h-4" />,
   aeoReadiness: <Brain className="w-4 h-4" />,
   accessibility: <Shield className="w-4 h-4" />,
+  cro: <Target className="w-4 h-4" />,
+  analytics: <BarChart2 className="w-4 h-4" />,
 };
 
 const PRIORITY_CFG = {
@@ -82,6 +86,9 @@ function NavBar({ onLogoClick, onSignIn, onSignUp }: {
 
         {!loading && (
           <div className="flex items-center gap-2">
+            <Link href="/tools/schema" className="hidden sm:inline-flex items-center gap-1.5 text-sm text-ink-3 hover:text-brand transition-colors font-medium px-3 py-2 rounded-lg hover:bg-brand/5">
+              <Code2 className="w-3.5 h-3.5" />Free Tools
+            </Link>
             {user ? (
               <div className="relative">
                 <button onClick={() => setMenuOpen(v => !v)}
@@ -478,6 +485,8 @@ function ResultsScreen({ data, onReset, onSavePrompt, savedToAccount, onUpgrade 
     { key: "geoReadiness", ...(pillars.geoReadiness ?? {}) },
     { key: "aeoReadiness", ...(pillars.aeoReadiness ?? {}) },
     { key: "accessibility", ...(pillars.accessibility ?? {}) },
+    { key: "cro", ...(pillars.cro ?? {}) },
+    { key: "analytics", ...(pillars.analytics ?? {}) },
   ];
 
   return (
@@ -756,7 +765,7 @@ function ResultsScreen({ data, onReset, onSavePrompt, savedToAccount, onUpgrade 
 // ── How It Works — Step Mockups ────────────────────────────────────────────
 
 function Step1Mockup() {
-  const url = "clearsight.agency";
+  const url = "yoom.digital";
   const [typed, setTyped] = useState("");
   const [showBtn, setShowBtn] = useState(false);
 
@@ -771,30 +780,32 @@ function Step1Mockup() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
-      <div style={{ background: "#1A1428", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, overflow: "hidden" }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.07)" }}>
         {/* Browser chrome */}
-        <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "12px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ background: "#F9FAFB", borderBottom: "1px solid #E5E7EB", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ display: "flex", gap: 5 }}>
-            {["#FF5F57","#FFBD2E","#28CA41"].map(c => <div key={c} style={{ background: c, width: 10, height: 10, borderRadius: "50%", opacity: 0.5 }} />)}
+            {["#FF5F57","#FFBD2E","#28CA41"].map(c => <div key={c} style={{ background: c, width: 10, height: 10, borderRadius: "50%" }} />)}
           </div>
-          <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 7, padding: "4px 10px", flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#28CA41", opacity: 0.6 }} />
-            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontFamily: "monospace" }}>
-              https://{typed}<span style={{ borderRight: "1.5px solid rgba(255,255,255,0.5)", marginLeft: 1, animation: "blink 1s step-end infinite" }}>&nbsp;</span>
+          <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 7, padding: "4px 10px", flex: 1, display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#28CA41" }} />
+            <span style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "monospace" }}>
+              https://{typed}<span style={{ borderRight: "1.5px solid #9CA3AF", marginLeft: 1, animation: "blink 1s step-end infinite" }}>&nbsp;</span>
             </span>
           </div>
         </div>
         {/* Page */}
-        <div style={{ padding: "28px 24px" }}>
-          <div style={{ textAlign: "center", marginBottom: 24 }}>
-            <div style={{ height: 10, width: "55%", margin: "0 auto 8px", background: "rgba(255,255,255,0.07)", borderRadius: 5 }} />
-            <div style={{ height: 7, width: "38%", margin: "0 auto 5px", background: "rgba(255,255,255,0.04)", borderRadius: 5 }} />
-            <div style={{ height: 7, width: "28%", margin: "0 auto", background: "rgba(255,255,255,0.04)", borderRadius: 5 }} />
+        <div style={{ padding: "24px 20px", background: "#FAFAFA" }}>
+          <div style={{ textAlign: "center", marginBottom: 20 }}>
+            <div style={{ height: 10, width: "55%", margin: "0 auto 8px", background: "#E5E7EB", borderRadius: 5 }} />
+            <div style={{ height: 7, width: "38%", margin: "0 auto 5px", background: "#F3F4F6", borderRadius: 5 }} />
+            <div style={{ height: 7, width: "28%", margin: "0 auto", background: "#F3F4F6", borderRadius: 5 }} />
           </div>
           {/* Input */}
-          <div style={{ background: "rgba(255,255,255,0.04)", border: "1.5px solid rgba(124,58,237,0.45)", borderRadius: 12, padding: "12px 14px", marginBottom: 12, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 0 24px rgba(124,58,237,0.18)" }}>
-            <div style={{ width: 14, height: 14, borderRadius: 4, background: "rgba(124,58,237,0.35)" }} />
-            <span style={{ color: typed ? "rgba(255,255,255,0.65)" : "rgba(255,255,255,0.2)", fontSize: 13 }}>
+          <div style={{ background: "#FFFFFF", border: "1.5px solid #7C3AED", borderRadius: 12, padding: "11px 14px", marginBottom: 10, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 0 0 3px rgba(124,58,237,0.08)" }}>
+            <div style={{ width: 14, height: 14, borderRadius: 4, background: "#F5F3FF" }}>
+              <div style={{ width: "100%", height: "100%", background: "#7C3AED", borderRadius: 4, opacity: 0.3 }} />
+            </div>
+            <span style={{ color: typed ? "#374151" : "#9CA3AF", fontSize: 13 }}>
               {typed || "yourwebsite.com"}
             </span>
           </div>
@@ -802,15 +813,15 @@ function Step1Mockup() {
             {showBtn && (
               <motion.div
                 initial={{ opacity: 0, y: 8, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-                style={{ background: "linear-gradient(135deg, #7C3AED, #DB2777)", borderRadius: 12, padding: "12px 16px", textAlign: "center", boxShadow: "0 8px 28px rgba(124,58,237,0.45)" }}
+                style={{ background: "linear-gradient(135deg, #7C3AED, #DB2777)", borderRadius: 12, padding: "11px 16px", textAlign: "center", boxShadow: "0 6px 20px rgba(124,58,237,0.35)" }}
               >
                 <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>Get My Free Score →</span>
               </motion.div>
             )}
           </AnimatePresence>
           {/* skeleton rows */}
-          <div style={{ marginTop: 20, display: "flex", flexDirection: "column", gap: 6 }}>
-            {[70, 50, 40].map((w, i) => <div key={i} style={{ height: 6, width: `${w}%`, background: "rgba(255,255,255,0.04)", borderRadius: 4 }} />)}
+          <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 6 }}>
+            {[70, 50, 40].map((w, i) => <div key={i} style={{ height: 6, width: `${w}%`, background: "#F3F4F6", borderRadius: 4 }} />)}
           </div>
         </div>
       </div>
@@ -857,34 +868,34 @@ function Step2Mockup() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
-      <div style={{ background: "#1A1428", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: "24px" }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 20, padding: "20px", boxShadow: "0 4px 20px rgba(0,0,0,0.07)" }}>
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#A855F7", boxShadow: "0 0 8px #A855F7" }} className="animate-pulse" />
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, fontWeight: 600 }}>Scanning signals…</span>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#7C3AED" }} className="animate-pulse" />
+            <span style={{ color: "#374151", fontSize: 12, fontWeight: 600 }}>Scanning signals…</span>
           </div>
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontVariantNumeric: "tabular-nums" }}>{counter} / 40</span>
+          <span style={{ fontSize: 11, color: "#9CA3AF", fontVariantNumeric: "tabular-nums", background: "#F5F3FF", padding: "2px 8px", borderRadius: 999, border: "1px solid #DDD6FE" }}>{counter} / 40</span>
         </div>
         {/* Progress bars */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
           {pillars.map((p, i) => (
             <div key={p.label}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-                <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, fontWeight: 600 }}>{p.label}</span>
+                <span style={{ color: "#374151", fontSize: 11, fontWeight: 600 }}>{p.label}</span>
                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <span style={{ color: p.color, fontSize: 11, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
                     {Math.round(widths[i])}
                   </span>
                   <AnimatePresence>
                     {done[i] && (
-                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ fontSize: 11 }}>✓</motion.span>
+                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} style={{ fontSize: 11, color: "#10B981" }}>✓</motion.span>
                     )}
                   </AnimatePresence>
                 </div>
               </div>
-              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 999, height: 6, overflow: "hidden" }}>
-                <div style={{ height: "100%", borderRadius: 999, background: p.color, width: `${widths[i]}%`, transition: "none", boxShadow: `0 0 8px ${p.color}60` }} />
+              <div style={{ background: "#F3F4F6", borderRadius: 999, height: 6, overflow: "hidden" }}>
+                <div style={{ height: "100%", borderRadius: 999, background: p.color, width: `${widths[i]}%`, transition: "none" }} />
               </div>
             </div>
           ))}
@@ -934,9 +945,9 @@ function Step3Mockup() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }}>
-      <div style={{ background: "#1A1428", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, padding: 24 }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 20, padding: 20, boxShadow: "0 4px 20px rgba(0,0,0,0.07)" }}>
         {/* Score row */}
-        <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20, paddingBottom: 20, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 18, paddingBottom: 18, borderBottom: "1px solid #E5E7EB" }}>
           <div style={{ position: "relative", width: 80, height: 80, flexShrink: 0 }}>
             <svg width="80" height="80">
               <defs>
@@ -945,29 +956,31 @@ function Step3Mockup() {
                   <stop offset="100%" stopColor="#DB2777" />
                 </linearGradient>
               </defs>
-              <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="7" />
+              <circle cx="40" cy="40" r="32" fill="none" stroke="#E5E7EB" strokeWidth="7" />
               <circle cx="40" cy="40" r="32" fill="none" stroke="url(#g3)" strokeWidth="7" strokeLinecap="round"
                 strokeDasharray={circ} strokeDashoffset={circ - (score / 100) * circ}
-                transform="rotate(-90 40 40)" style={{ filter: "drop-shadow(0 0 8px rgba(168,85,247,0.5))" }} />
-              <text x="40" y="44" textAnchor="middle" fontSize="18" fontWeight="900" fill="white" fontFamily="Inter, system-ui">{score}</text>
+                transform="rotate(-90 40 40)" style={{ filter: "drop-shadow(0 0 6px rgba(124,58,237,0.3))" }} />
+              <text x="40" y="44" textAnchor="middle" fontSize="18" fontWeight="900" fill="#0F0A1E" fontFamily="Inter, system-ui">{score}</text>
             </svg>
           </div>
           <div>
-            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, marginBottom: 3 }}>Overall Score</p>
-            <p style={{ color: "#F59E0B", fontSize: 14, fontWeight: 700, marginBottom: 3 }}>Needs Work</p>
-            <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>3 critical issues found</p>
+            <p style={{ color: "#9CA3AF", fontSize: 11, marginBottom: 4 }}>Overall Score</p>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 999, padding: "2px 9px", marginBottom: 5 }}>
+              <span style={{ color: "#D97706", fontSize: 12, fontWeight: 700 }}>Needs Work</span>
+            </div>
+            <p style={{ color: "#6B7280", fontSize: 11 }}>3 critical issues found</p>
           </div>
         </div>
         {/* Mini pillar bars */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 14 }}>
           {bars.map((b, i) => (
             <div key={b.label}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>{b.label}</span>
+                <span style={{ color: "#6B7280", fontSize: 11 }}>{b.label}</span>
                 <span style={{ color: b.color, fontSize: 11, fontWeight: 700 }}>{Math.round(barWidths[i])}</span>
               </div>
-              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 999, height: 5 }}>
-                <div style={{ height: "100%", borderRadius: 999, background: b.color, width: `${barWidths[i]}%`, boxShadow: `0 0 6px ${b.color}50` }} />
+              <div style={{ background: "#F3F4F6", borderRadius: 999, height: 5 }}>
+                <div style={{ height: "100%", borderRadius: 999, background: b.color, width: `${barWidths[i]}%` }} />
               </div>
             </div>
           ))}
@@ -982,7 +995,7 @@ function Step3Mockup() {
                 { label: "No FAQ schema", color: "#F59E0B" },
               ].map((r, i) => (
                 <motion.span key={r.label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.12 }}
-                  style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: `${r.color}18`, color: r.color, border: `1px solid ${r.color}28` }}>
+                  style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, background: `${r.color}10`, color: r.color, border: `1px solid ${r.color}22` }}>
                   ⚠ {r.label}
                 </motion.span>
               ))}
@@ -1092,7 +1105,7 @@ function HeroReportMockup() {
   const pillars = [
     { label: "Performance", v: 52, color: "#F59E0B" },
     { label: "Technical SEO", v: 78, color: "#7C3AED" },
-    { label: "Content", v: 65, color: "#7C3AED" },
+    { label: "Content", v: 65, color: "#A855F7" },
     { label: "GEO Readiness", v: 44, color: "#EF4444" },
     { label: "AEO Readiness", v: 38, color: "#EF4444" },
     { label: "Accessibility", v: 91, color: "#10B981" },
@@ -1105,7 +1118,6 @@ function HeroReportMockup() {
   useEffect(() => {
     const scanTimer = setTimeout(() => {
       setPhase("results");
-      // Count up score
       const s = Date.now();
       const countUp = () => {
         const t = Math.min((Date.now() - s) / 1000, 1);
@@ -1113,7 +1125,6 @@ function HeroReportMockup() {
         if (t < 1) requestAnimationFrame(countUp);
       };
       requestAnimationFrame(countUp);
-      // Staggered bars
       pillars.forEach((p, i) => {
         setTimeout(() => {
           const bs = Date.now();
@@ -1127,8 +1138,7 @@ function HeroReportMockup() {
         }, 300 + i * 150);
       });
       setTimeout(() => setShowRecs(true), 1800);
-      // Loop
-      setTimeout(reset, 8000);
+      setTimeout(reset, 8500);
     }, 2200);
     return () => clearTimeout(scanTimer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1140,31 +1150,31 @@ function HeroReportMockup() {
   return (
     <div className="relative">
       {/* Subtle glow behind card */}
-      <div className="absolute inset-0 rounded-3xl opacity-25 blur-2xl pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.3), rgba(219,39,119,0.2))", transform: "scale(0.92) translateY(16px)" }} />
+      <div className="absolute inset-0 rounded-3xl opacity-20 blur-2xl pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.25), rgba(219,39,119,0.15))", transform: "scale(0.92) translateY(20px)" }} />
 
-      <div style={{ background: "#0F0B1E", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 24, overflow: "hidden", position: "relative" }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 24, overflow: "hidden", position: "relative", boxShadow: "0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)" }}>
         {/* Window chrome */}
-        <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ padding: "10px 14px", background: "#F9FAFB", borderBottom: "1px solid #E5E7EB", display: "flex", alignItems: "center", gap: 8 }}>
           <div style={{ display: "flex", gap: 5 }}>
-            {["#FF5F57","#FFBD2E","#28CA41"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c, opacity: 0.5 }} />)}
+            {["#FF5F57","#FFBD2E","#28CA41"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />)}
           </div>
-          <div style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 6, padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#28CA41", opacity: 0.7 }} />
-            <span style={{ color: "rgba(255,255,255,0.35)", fontSize: 11, fontFamily: "monospace" }}>sitescore.app · auditing {domain}</span>
+          <div style={{ flex: 1, background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 6, padding: "4px 10px", display: "flex", alignItems: "center", gap: 5 }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#28CA41" }} />
+            <span style={{ color: "#9CA3AF", fontSize: 11, fontFamily: "monospace" }}>sitescore.app · auditing {domain}</span>
           </div>
         </div>
 
-        <div style={{ padding: "20px 20px 24px" }}>
+        <div style={{ padding: "18px 18px 22px", background: "#FAFAFA" }}>
           <AnimatePresence mode="wait">
             {phase === "scanning" ? (
               <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ textAlign: "center", padding: "16px 0" }}>
-                <div style={{ width: 40, height: 40, border: "3px solid rgba(124,58,237,0.2)", borderTopColor: "#7C3AED", borderRadius: "50%", margin: "0 auto 14px", animation: "spin 1s linear infinite" }} />
-                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 600 }}>Scanning {domain}…</p>
+                <div style={{ width: 40, height: 40, border: "3px solid #F5F3FF", borderTopColor: "#7C3AED", borderRadius: "50%", margin: "0 auto 14px", animation: "spin 1s linear infinite" }} />
+                <p style={{ color: "#374151", fontSize: 13, fontWeight: 600 }}>Scanning {domain}…</p>
                 <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
                   {["Connecting to PageSpeed API", "Fetching HTML structure", "Analysing keywords & Schema"].map((s, i) => (
                     <motion.div key={s} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.4 }}
-                      style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, color: "rgba(255,255,255,0.3)", justifyContent: "center" }}>
-                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#7C3AED", opacity: 0.7 }} />
+                      style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11, color: "#9CA3AF", justifyContent: "center" }}>
+                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#7C3AED" }} />
                       {s}
                     </motion.div>
                   ))}
@@ -1173,7 +1183,7 @@ function HeroReportMockup() {
             ) : (
               <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
                 {/* Score row */}
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid #E5E7EB" }}>
                   <svg width="90" height="90" style={{ flexShrink: 0 }}>
                     <defs>
                       <linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1181,33 +1191,35 @@ function HeroReportMockup() {
                         <stop offset="100%" stopColor="#DB2777" />
                       </linearGradient>
                     </defs>
-                    <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="7" />
+                    <circle cx="45" cy="45" r="38" fill="none" stroke="#E5E7EB" strokeWidth="7" />
                     <circle cx="45" cy="45" r="38" fill="none" stroke="url(#hg)" strokeWidth="7" strokeLinecap="round"
                       strokeDasharray={circ} strokeDashoffset={circ - (score / 100) * circ}
-                      transform="rotate(-90 45 45)" style={{ filter: "drop-shadow(0 0 8px rgba(124,58,237,0.5))" }} />
-                    <text x="45" y="50" textAnchor="middle" fontSize="20" fontWeight="900" fill="white" fontFamily="Inter, system-ui">{score}</text>
+                      transform="rotate(-90 45 45)" style={{ filter: "drop-shadow(0 0 6px rgba(124,58,237,0.35))" }} />
+                    <text x="45" y="50" textAnchor="middle" fontSize="20" fontWeight="900" fill="#0F0A1E" fontFamily="Inter, system-ui">{score}</text>
                   </svg>
                   <div>
-                    <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, marginBottom: 3 }}>{domain}</p>
-                    <p style={{ color: "#F59E0B", fontSize: 13, fontWeight: 700, marginBottom: 2 }}>Needs Work</p>
-                    <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 10 }}>4 critical issues found</p>
+                    <p style={{ color: "#9CA3AF", fontSize: 10, marginBottom: 3 }}>{domain}</p>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 999, padding: "2px 8px", marginBottom: 4 }}>
+                      <span style={{ color: "#D97706", fontSize: 11, fontWeight: 700 }}>Needs Work</span>
+                    </div>
+                    <p style={{ color: "#6B7280", fontSize: 10 }}>4 critical issues found</p>
                   </div>
                 </div>
 
                 {/* Pillar bars */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 12 }}>
                   {pillars.map((p, i) => (
                     <div key={p.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, width: 90, flexShrink: 0 }}>{p.label}</span>
-                      <div style={{ flex: 1, background: "rgba(255,255,255,0.06)", borderRadius: 999, height: 5 }}>
-                        <div style={{ height: "100%", borderRadius: 999, background: p.color, width: `${barWidths[i]}%`, boxShadow: `0 0 6px ${p.color}50` }} />
+                      <span style={{ color: "#6B7280", fontSize: 10, width: 88, flexShrink: 0 }}>{p.label}</span>
+                      <div style={{ flex: 1, background: "#F3F4F6", borderRadius: 999, height: 5 }}>
+                        <div style={{ height: "100%", borderRadius: 999, background: p.color, width: `${barWidths[i]}%` }} />
                       </div>
                       <span style={{ color: p.color, fontSize: 10, fontWeight: 700, width: 22, textAlign: "right" }}>{Math.round(barWidths[i])}</span>
                     </div>
                   ))}
                 </div>
 
-                {/* Rec tags */}
+                {/* Issue tags */}
                 <AnimatePresence>
                   {showRecs && (
                     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
@@ -1217,7 +1229,7 @@ function HeroReportMockup() {
                         { t: "No FAQ schema", c: "#F59E0B" },
                       ].map((r, i) => (
                         <motion.span key={r.t} initial={{ opacity: 0, scale: 0.88 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.1 }}
-                          style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: `${r.c}18`, color: r.c, border: `1px solid ${r.c}28` }}>
+                          style={{ fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: `${r.c}12`, color: r.c, border: `1px solid ${r.c}25` }}>
                           ⚠ {r.t}
                         </motion.span>
                       ))}
@@ -1278,16 +1290,16 @@ function ProductPreviewSection() {
         {/* Preview panel */}
         <div className="max-w-3xl mx-auto">
           {/* Window chrome */}
-          <div className="rounded-t-2xl px-4 py-3 flex items-center gap-3" style={{ background: "#1A1428" }}>
+          <div className="rounded-t-2xl px-4 py-3 flex items-center gap-3" style={{ background: "#F3F4F6", borderBottom: "1px solid #E5E7EB" }}>
             <div className="flex gap-1.5">
-              {["#FF5F57","#FFBD2E","#28CA41"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c, opacity: 0.5 }} />)}
+              {["#FF5F57","#FFBD2E","#28CA41"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />)}
             </div>
-            <div className="flex-1 bg-white/5 border border-white/8 rounded-md px-3 py-1.5 text-xs font-mono" style={{ color: "rgba(255,255,255,0.35)" }}>
+            <div className="flex-1 bg-white border border-gray-200 rounded-md px-3 py-1.5 text-xs font-mono text-gray-400">
               sitescore.app · example-business.com
             </div>
           </div>
 
-          <div className="rounded-b-2xl overflow-hidden" style={{ background: "#0F0B1E", border: "1px solid rgba(255,255,255,0.06)", borderTop: "none", minHeight: 320 }}>
+          <div className="rounded-b-2xl overflow-hidden" style={{ background: "#FAFAFA", border: "1px solid #E5E7EB", borderTop: "none", minHeight: 320 }}>
             <AnimatePresence mode="wait">
               {activeTab === 0 && <PreviewTab0 key="t0" />}
               {activeTab === 1 && <PreviewTab1 key="t1" />}
@@ -1316,36 +1328,37 @@ function PreviewTab0() {
   }, []);
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}
-      style={{ padding: "28px 28px 32px", display: "flex", flexDirection: "column", gap: 20 }}>
+      style={{ padding: "24px 24px 28px", display: "flex", flexDirection: "column", gap: 18 }}>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 20, alignItems: "center" }}>
         {/* Score circle */}
-        <div style={{ flexShrink: 0 }}>
-          <svg width="120" height="120">
+        <div style={{ flexShrink: 0, background: "white", border: "1px solid #E5E7EB", borderRadius: 20, padding: "16px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+          <svg width="110" height="110">
             <defs>
               <linearGradient id="pg0" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#7C3AED" />
                 <stop offset="100%" stopColor="#A855F7" />
               </linearGradient>
             </defs>
-            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="9" />
-            <circle cx="60" cy="60" r="52" fill="none" stroke="url(#pg0)" strokeWidth="9" strokeLinecap="round"
+            <circle cx="55" cy="55" r="46" fill="none" stroke="#E5E7EB" strokeWidth="8" />
+            <circle cx="55" cy="55" r="46" fill="none" stroke="url(#pg0)" strokeWidth="8" strokeLinecap="round"
               strokeDasharray={circ} strokeDashoffset={circ - (score/100)*circ}
-              transform="rotate(-90 60 60)" style={{ filter: "drop-shadow(0 0 10px rgba(124,58,237,0.45))" }} />
-            <text x="60" y="65" textAnchor="middle" fontSize="26" fontWeight="900" fill="white" fontFamily="Inter,system-ui">{score}</text>
+              transform="rotate(-90 55 55)" style={{ filter: "drop-shadow(0 0 6px rgba(124,58,237,0.3))" }} />
+            <text x="55" y="60" textAnchor="middle" fontSize="24" fontWeight="900" fill="#0F0A1E" fontFamily="Inter,system-ui">{score}</text>
+            <text x="55" y="73" textAnchor="middle" fontSize="9" fill="#9CA3AF" fontFamily="Inter,system-ui">/ 100</text>
           </svg>
         </div>
         {/* Verdict */}
-        <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.2)", borderRadius: 999, padding: "4px 12px", marginBottom: 10 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#A855F7", display: "block" }} />
-            <span style={{ color: "#A855F7", fontSize: 11, fontWeight: 700 }}>Good — keep improving</span>
+        <div style={{ flex: 1, minWidth: 160 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 999, padding: "4px 12px", marginBottom: 10 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#7C3AED", display: "block" }} />
+            <span style={{ color: "#7C3AED", fontSize: 11, fontWeight: 700 }}>Good — keep improving</span>
           </div>
-          <p style={{ color: "white", fontSize: 18, fontWeight: 700, lineHeight: 1.3, marginBottom: 8 }}>Solid foundation — but you&apos;re leaving traffic on the table.</p>
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, lineHeight: 1.6 }}>Fixing the issues below could meaningfully boost your rankings and AI visibility.</p>
+          <p style={{ color: "#0F0A1E", fontSize: 16, fontWeight: 700, lineHeight: 1.4, marginBottom: 6 }}>Solid foundation — but you&apos;re leaving traffic on the table.</p>
+          <p style={{ color: "#6B7280", fontSize: 12, lineHeight: 1.6 }}>Fixing the issues below could boost your rankings and AI visibility.</p>
         </div>
       </div>
       {/* Health strip */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: 8 }}>
         {[
           { l: "HTTPS", v: "Secure ✓", ok: true },
           { l: "Sitemap", v: "Found ✓", ok: true },
@@ -1354,9 +1367,9 @@ function PreviewTab0() {
           { l: "Domain Authority", v: "DA 28", ok: true },
           { l: "Pages Found", v: "~140 pages", ok: true },
         ].map(item => (
-          <div key={item.l} style={{ background: item.ok ? "rgba(16,185,129,0.07)" : "rgba(239,68,68,0.07)", border: `1px solid ${item.ok ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)"}`, borderRadius: 10, padding: "8px 12px" }}>
-            <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 10, marginBottom: 2 }}>{item.l}</p>
-            <p style={{ color: item.ok ? "#10B981" : "#EF4444", fontSize: 12, fontWeight: 700 }}>{item.v}</p>
+          <div key={item.l} style={{ background: item.ok ? "#F0FDF4" : "#FEF2F2", border: `1px solid ${item.ok ? "#BBF7D0" : "#FECACA"}`, borderRadius: 10, padding: "8px 12px" }}>
+            <p style={{ color: "#9CA3AF", fontSize: 10, marginBottom: 2 }}>{item.l}</p>
+            <p style={{ color: item.ok ? "#059669" : "#DC2626", fontSize: 12, fontWeight: 700 }}>{item.v}</p>
           </div>
         ))}
       </div>
@@ -1391,21 +1404,21 @@ function PreviewTab1() {
   }, []);
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}
-      style={{ padding: "24px 24px 28px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 10 }}>
+      style={{ padding: "20px 20px 24px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 8 }}>
         {pillars.map((p, i) => (
-          <div key={p.label} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "14px 16px" }}>
+          <div key={p.label} style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: 14, padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
               <div>
-                <p style={{ color: "white", fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{p.label}</p>
-                <p style={{ color: "rgba(255,255,255,0.3)", fontSize: 11 }}>{p.desc}</p>
+                <p style={{ color: "#0F0A1E", fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{p.label}</p>
+                <p style={{ color: "#9CA3AF", fontSize: 11 }}>{p.desc}</p>
               </div>
               <span style={{ fontSize: 20, fontWeight: 900, color: p.color }}>{Math.round(widths[i])}</span>
             </div>
-            <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 999, height: 6, marginBottom: 6 }}>
-              <div style={{ height: "100%", borderRadius: 999, background: p.color, width: `${widths[i]}%`, boxShadow: `0 0 8px ${p.color}50` }} />
+            <div style={{ background: "#F3F4F6", borderRadius: 999, height: 6, marginBottom: 6 }}>
+              <div style={{ height: "100%", borderRadius: 999, background: p.color, width: `${widths[i]}%` }} />
             </div>
-            <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 10, textAlign: "right" }}>{p.pts} pts</p>
+            <p style={{ color: "#9CA3AF", fontSize: 10, textAlign: "right" }}>{p.pts} pts</p>
           </div>
         ))}
       </div>
@@ -1421,23 +1434,149 @@ function PreviewTab2() {
   ];
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }}
-      style={{ padding: "20px 20px 24px", display: "flex", flexDirection: "column", gap: 10 }}>
+      style={{ padding: "18px 18px 22px", display: "flex", flexDirection: "column", gap: 8 }}>
       {recs.map((r, i) => (
         <motion.div key={r.title} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1 }}
-          style={{ background: `${r.color}0A`, border: `1px solid ${r.color}20`, borderRadius: 14, padding: "14px 16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-            <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999, background: `${r.color}18`, color: r.color, border: `1px solid ${r.color}25` }}>{r.priority}</span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontWeight: 600 }}>{r.cat}</span>
+          style={{ background: "#FFFFFF", border: `1px solid ${r.color}22`, borderLeft: `3px solid ${r.color}`, borderRadius: 12, padding: "13px 15px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+            <span style={{ fontSize: 10, fontWeight: 800, padding: "2px 8px", borderRadius: 999, background: `${r.color}12`, color: r.color, border: `1px solid ${r.color}22` }}>{r.priority}</span>
+            <span style={{ fontSize: 11, color: "#6B7280", fontWeight: 600 }}>{r.cat}</span>
           </div>
-          <p style={{ color: "white", fontSize: 13, fontWeight: 700, marginBottom: 5 }}>{r.title}</p>
-          <p style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, lineHeight: 1.6 }}>{r.desc}</p>
-          <div style={{ marginTop: 10, padding: "8px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 8, display: "flex", alignItems: "center", gap: 6 }}>
+          <p style={{ color: "#0F0A1E", fontSize: 13, fontWeight: 700, marginBottom: 4 }}>{r.title}</p>
+          <p style={{ color: "#6B7280", fontSize: 12, lineHeight: 1.6 }}>{r.desc}</p>
+          <div style={{ marginTop: 8, padding: "7px 11px", background: "#F5F3FF", borderRadius: 8, display: "flex", alignItems: "center", gap: 6 }}>
             <Lock style={{ width: 12, height: 12, color: "#7C3AED", flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: "#A78BFA", fontWeight: 600 }}>How to fix — unlock with a plan</span>
+            <span style={{ fontSize: 11, color: "#7C3AED", fontWeight: 600 }}>How to fix — unlock with a plan</span>
           </div>
         </motion.div>
       ))}
     </motion.div>
+  );
+}
+
+// ── Streaming Loading Screen ────────────────────────────────────────────────
+
+const PILLAR_ORDER = ["contentKeywords", "geoReadiness", "aeoReadiness", "cro", "analytics", "performance", "technicalSeo", "accessibility"];
+
+function StreamingScreen({ url, statusMsg, streamHealth, streamedPillars, streamKeywords, streamScore }: {
+  url: string;
+  statusMsg: string;
+  streamHealth: StreamHealth | null;
+  streamedPillars: Record<string, PillarData & { key: string }>;
+  streamKeywords: { top: Keyword[]; coverageScore: number } | null;
+  streamScore: number;
+}) {
+  let host = url;
+  try { host = new URL(url).hostname; } catch {}
+
+  const arrivedKeys = PILLAR_ORDER.filter(k => streamedPillars[k]);
+  const pendingKeys = PILLAR_ORDER.filter(k => !streamedPillars[k]);
+  const hasAnyPillar = arrivedKeys.length > 0;
+
+  return (
+    <div className="flex-1 pb-24 bg-surface">
+      <div className="max-w-content mx-auto px-6 py-6">
+
+        {/* Status bar */}
+        <motion.div className="flex items-center gap-3 mb-6 py-3 px-4 bg-white border border-gray-100 rounded-2xl shadow-sm"
+          initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+          <span className="w-2 h-2 rounded-full bg-brand animate-pulse shrink-0" />
+          <p className="text-sm text-ink-2 font-medium flex-1">{statusMsg || "Starting analysis\u2026"}</p>
+          <span className="text-xs text-ink-4 font-medium hidden sm:block">{host}</span>
+          {hasAnyPillar && (
+            <span className="text-xs text-ink-4 tabular-nums">{arrivedKeys.length}/{PILLAR_ORDER.length} signals</span>
+          )}
+        </motion.div>
+
+        {/* Score + spinner row */}
+        {hasAnyPillar ? (
+          <motion.div className="card rounded-3xl p-6 flex items-center gap-8 mb-6"
+            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <div className="shrink-0"><ScoreCircle score={streamScore} size={160} /></div>
+            <div className="flex-1">
+              <p className="text-xs text-ink-4 uppercase tracking-widest font-semibold mb-1">Live score — updating</p>
+              <p className="text-lg font-bold text-ink">Results loading in real-time</p>
+              <p className="text-sm text-ink-3 mt-1">{arrivedKeys.length} of {PILLAR_ORDER.length} pillars complete</p>
+              <div className="mt-3 flex gap-1">
+                {PILLAR_ORDER.map(k => (
+                  <div key={k} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${streamedPillars[k] ? "bg-brand" : "bg-gray-200"}`} />
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="relative mb-8">
+              <div className="w-20 h-20 rounded-full" style={{ border: "4px solid #F3F4F6", borderTopColor: "#7C3AED", animation: "spin 1.2s linear infinite" }} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Globe className="w-8 h-8 text-brand" />
+              </div>
+            </div>
+            <h2 className="text-xl font-bold text-ink mb-2">Analysing <span className="gradient-text">{host}</span></h2>
+            <p className="text-sm text-ink-3">Fetching HTML and starting performance scan\u2026</p>
+          </div>
+        )}
+
+        {/* Mini health strip */}
+        {streamHealth && (
+          <motion.div className="card rounded-2xl p-4 mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            {[
+              { label: "HTTPS", value: streamHealth.isHTTPS ? "Secure \u2713" : "Not secure \u2717", alert: !streamHealth.isHTTPS },
+              { label: "Robots.txt", value: streamHealth.hasRobots ? (streamHealth.blockedByCrawlers ? "\u26a0 Blocking" : "Valid \u2713") : "Missing \u2717", alert: !streamHealth.hasRobots || streamHealth.blockedByCrawlers },
+              { label: "Sitemap", value: streamHealth.hasSitemap ? "Found \u2713" : "Missing \u2717", alert: !streamHealth.hasSitemap },
+              { label: "Schema types", value: streamHealth.schemaTypesFound.length > 0 ? streamHealth.schemaTypesFound.slice(0, 2).join(", ") : "None", alert: streamHealth.schemaTypesFound.length === 0 },
+            ].map(item => (
+              <div key={item.label} className={`rounded-xl p-3 ${item.alert ? "bg-red-50 border border-red-100" : "bg-gray-50 border border-gray-100"}`}>
+                <p className={`text-xs font-medium mb-0.5 ${item.alert ? "text-red-500" : "text-ink-3"}`}>{item.label}</p>
+                <p className={`text-xs font-semibold truncate ${item.alert ? "text-red-600" : "text-ink-2"}`}>{item.value}</p>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Pillar grid */}
+        {hasAnyPillar && (
+          <div>
+            <h3 className="text-sm font-semibold text-ink-3 uppercase tracking-widest mb-4">Score Breakdown</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+              {arrivedKeys.map(key => {
+                const p = streamedPillars[key];
+                return (
+                  <motion.div key={key} initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.35 }}>
+                    <div className="flex flex-col">
+                      <ScorePillar label={p.label} description={p.description} score={p.score} points={p.points} maxPoints={p.maxPoints} icon={PILLAR_ICONS[key]} delay={0} />
+                      <CheckList checks={p.checks} gated={true} />
+                    </div>
+                  </motion.div>
+                );
+              })}
+              {pendingKeys.map(key => (
+                <div key={key} className="card rounded-2xl p-4 animate-pulse">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-gray-100 rounded" />
+                      <div className="h-3.5 bg-gray-100 rounded w-28" />
+                    </div>
+                    <div className="h-6 bg-gray-100 rounded w-10" />
+                  </div>
+                  <div className="h-1.5 bg-gray-100 rounded-full w-full mb-2" />
+                  <div className="h-3 bg-gray-50 rounded w-3/4" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Keywords preview */}
+        {streamKeywords && streamKeywords.top.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <KeywordSection keywords={streamKeywords.top} coverageScore={streamKeywords.coverageScore} />
+          </motion.div>
+        )}
+
+      </div>
+    </div>
   );
 }
 
@@ -1644,6 +1783,13 @@ export default function Home() {
   const [savedToAccount, setSavedToAccount] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Streaming state
+  const [streamStatusMsg, setStreamStatusMsg] = useState("");
+  const [streamHealth, setStreamHealth] = useState<StreamHealth | null>(null);
+  const [streamedPillars, setStreamedPillars] = useState<Record<string, PillarData & { key: string }>>({});
+  const [streamKeywords, setStreamKeywords] = useState<{ top: Keyword[]; coverageScore: number } | null>(null);
+  const [streamScore, setStreamScore] = useState(0);
+
   useEffect(() => {
     if (user && pendingSave && auditData) {
       setPendingSave(false);
@@ -1666,18 +1812,108 @@ export default function Home() {
     e.preventDefault();
     const url = inputUrl.trim();
     if (!url) return;
+
+    // Reset all streaming state
+    const localPillars: Record<string, PillarData & { key: string }> = {};
+    let localKeywords: { top: Keyword[]; coverageScore: number } | null = null;
+
     setSubmittedUrl(url);
     setStage("loading");
-    setErrorMsg(""); setSavedToAccount(false);
+    setErrorMsg("");
+    setSavedToAccount(false);
+    setStreamStatusMsg("");
+    setStreamHealth(null);
+    setStreamedPillars({});
+    setStreamKeywords(null);
+    setStreamScore(0);
+
     try {
-      const res = await fetch("/api/audit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
-      const data = await res.json() as AuditData & { error?: string };
-      if (!res.ok || data.error) { setErrorMsg(data.error ?? "Something went wrong."); setStage("error"); return; }
-      setAuditData(data);
-      // If already logged in, auto-save and skip email gate
-      if (user) { saveAudit(data); setStage("results"); }
-      else { setStage("email-gate"); }
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const res = await fetch("/api/audit/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!res.ok || !res.body) {
+        const errData = await res.json().catch(() => ({ error: "Stream failed" })) as { error?: string };
+        setErrorMsg(errData.error ?? "Something went wrong.");
+        setStage("error");
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() ?? "";
+
+        for (const rawEvent of events) {
+          if (!rawEvent.trim()) continue;
+          const lines = rawEvent.split("\n");
+          const typeLine = lines.find(l => l.startsWith("event: "));
+          const dataLine = lines.find(l => l.startsWith("data: "));
+          if (!typeLine || !dataLine) continue;
+
+          const eventType = typeLine.slice(7).trim();
+          let data: Record<string, unknown>;
+          try { data = JSON.parse(dataLine.slice(6)) as Record<string, unknown>; } catch { continue; }
+
+          if (eventType === "status") {
+            setStreamStatusMsg(data.message as string);
+          } else if (eventType === "health") {
+            setStreamHealth(data as unknown as StreamHealth);
+          } else if (eventType === "pillar") {
+            const p = data as unknown as PillarData & { key: string };
+            localPillars[p.key] = p;
+            setStreamedPillars(prev => ({ ...prev, [p.key]: p }));
+            const pts = Object.values(localPillars).reduce((s, x) => s + x.points, 0);
+            const maxPts = Object.values(localPillars).reduce((s, x) => s + x.maxPoints, 0);
+            if (maxPts > 0) setStreamScore(Math.round((pts / maxPts) * 100));
+          } else if (eventType === "keywords") {
+            localKeywords = data as unknown as { top: Keyword[]; coverageScore: number };
+            setStreamKeywords(localKeywords);
+          } else if (eventType === "complete") {
+            const completeData = data as {
+              score: number; url: string;
+              health: AuditData["health"];
+              recommendations: Recommendation[];
+              gatedRecsCount: number;
+            };
+            const fullData: AuditData = {
+              score: completeData.score,
+              url: completeData.url,
+              health: completeData.health,
+              pillars: {
+                performance: localPillars.performance as PillarData,
+                technicalSeo: localPillars.technicalSeo as PillarData,
+                contentKeywords: localPillars.contentKeywords as PillarData,
+                geoReadiness: localPillars.geoReadiness as PillarData,
+                aeoReadiness: localPillars.aeoReadiness as PillarData,
+                accessibility: localPillars.accessibility as PillarData,
+                cro: localPillars.cro as PillarData,
+                analytics: localPillars.analytics as PillarData,
+              },
+              keywords: localKeywords ?? { top: [], coverageScore: 0 },
+              recommendations: completeData.recommendations,
+              gatedRecsCount: completeData.gatedRecsCount,
+            };
+            setAuditData(fullData);
+            if (user) { saveAudit(fullData); setStage("results"); }
+            else { setStage("email-gate"); }
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          } else if (eventType === "error") {
+            setErrorMsg((data.message as string) ?? "Something went wrong.");
+            setStage("error");
+            return;
+          }
+        }
+      }
     } catch {
       setErrorMsg("Network error. Please check your connection and try again.");
       setStage("error");
@@ -1717,7 +1953,14 @@ export default function Home() {
 
         {stage === "loading" && (
           <motion.div key="loading" className="flex-1 flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-            <LoadingScreen url={submittedUrl} />
+            <StreamingScreen
+              url={submittedUrl}
+              statusMsg={streamStatusMsg}
+              streamHealth={streamHealth}
+              streamedPillars={streamedPillars}
+              streamKeywords={streamKeywords}
+              streamScore={streamScore}
+            />
           </motion.div>
         )}
 
@@ -1750,7 +1993,7 @@ export default function Home() {
       <footer className="border-t border-gray-100 bg-white py-6 px-6 text-center">
         <p className="text-xs text-ink-4">
           Built by{" "}
-          <a href="https://clearsight.agency" target="_blank" rel="noopener noreferrer" className="text-brand hover:text-brand-dark transition-colors underline underline-offset-2">Clearsight Agency</a>
+          <a href="https://yoom.digital" target="_blank" rel="noopener noreferrer" className="text-brand hover:text-brand-dark transition-colors underline underline-offset-2">Yoom Digital Agency</a>
           {" "}· Powered by Google PageSpeed Insights + HTML analysis
         </p>
       </footer>

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 export const maxDuration = 60;
 
@@ -821,154 +821,202 @@ function buildRecommendations(
 
 // ── Main Handler ───────────────────────────────────────────────────────────
 
+
+// ── Streaming Handler ─────────────────────────────────────────────────────
+
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json() as { url?: unknown; industry?: string };
-    const rawUrl = body?.url;
+  const encoder = new TextEncoder();
 
-    if (!rawUrl || typeof rawUrl !== "string")
-      return NextResponse.json({ error: "Please provide a valid URL." }, { status: 400 });
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (type: string, data: unknown) => {
+        try {
+          controller.enqueue(encoder.encode(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`));
+        } catch { /* controller may already be closed */ }
+      };
 
-    const industry = typeof body.industry === "string" ? body.industry : undefined;
+      try {
+        const body = await req.json() as { url?: unknown; industry?: string };
+        const rawUrl = body?.url;
 
-    let url = rawUrl.trim();
-    if (!url.startsWith("http://") && !url.startsWith("https://")) url = "https://" + url;
-    try { new URL(url); } catch {
-      return NextResponse.json({ error: "That doesn't look like a valid URL. Try something like example.com" }, { status: 400 });
-    }
+        if (!rawUrl || typeof rawUrl !== "string") {
+          send("error", { message: "Please provide a valid URL." });
+          controller.close();
+          return;
+        }
 
-    const origin = new URL(url).origin;
-    const apiKey = process.env.PAGESPEED_API_KEY;
+        const industry = typeof body.industry === "string" ? body.industry : undefined;
+        let url = rawUrl.trim();
+        if (!url.startsWith("http://") && !url.startsWith("https://")) url = "https://" + url;
+        try { new URL(url); } catch {
+          send("error", { message: "That doesn't look like a valid URL. Try something like example.com" });
+          controller.close();
+          return;
+        }
 
-    // ── Parallel fetch PSI + HTML + robots + sitemap ──
-    const psiParams = new URLSearchParams({ url, strategy: "mobile", ...(apiKey ? { key: apiKey } : {}) });
-    ["performance", "seo", "accessibility", "best-practices"].forEach(c => psiParams.append("category", c));
-    const PSI_URL = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${psiParams}`;
+        const origin = new URL(url).origin;
+        const apiKey = process.env.PAGESPEED_API_KEY;
 
-    const FETCH_OPTS = { headers: { "User-Agent": "Mozilla/5.0 (compatible; SiteScoreBot/1.0)" }, signal: AbortSignal.timeout(12000) };
+        send("status", { message: "Reaching your website\u2026" });
 
-    const [psiResult, htmlResult, robotsResult, sitemapResult] = await Promise.allSettled([
-      fetch(PSI_URL, { signal: AbortSignal.timeout(45000) }).then(r => r.json() as Promise<PSIResponse>),
-      fetch(url, FETCH_OPTS).then(r => r.text()),
-      fetch(`${origin}/robots.txt`, FETCH_OPTS).then(r => r.ok ? r.text() : null),
-      fetch(`${origin}/sitemap.xml`, FETCH_OPTS).then(r => r.ok ? r.text() : null),
-    ]);
+        const psiParams = new URLSearchParams({ url, strategy: "mobile", ...(apiKey ? { key: apiKey } : {}) });
+        ["performance", "seo", "accessibility", "best-practices"].forEach(c => psiParams.append("category", c));
+        const PSI_URL = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${psiParams}`;
 
-    // Handle PSI failure
-    if (psiResult.status === "rejected") {
-      return NextResponse.json({ error: "Analysis timed out. The site may be very slow or down." }, { status: 504 });
-    }
-    const psiData = psiResult.value as PSIResponse & { error?: { code: number; message: string } };
-    if ((psiData as { error?: { code: number } }).error?.code === 429)
-      return NextResponse.json({ error: "Rate limit reached. Please wait 30 seconds and try again." }, { status: 429 });
-    if (!psiData.lighthouseResult)
-      return NextResponse.json({ error: "Could not analyse this URL. Make sure it's publicly accessible." }, { status: 400 });
+        const FETCH_OPTS = {
+          headers: { "User-Agent": "Mozilla/5.0 (compatible; SiteScoreBot/1.0)" },
+          signal: AbortSignal.timeout(12000),
+        };
 
-    // Parse HTML
-    const htmlRaw = htmlResult.status === "fulfilled" ? htmlResult.value : null;
-    const htmlAnalysis: HTMLAnalysis = htmlRaw
-      ? parseHTML(htmlRaw, url)
-      : { title: null, titleLength: 0, metaDescription: null, metaDescLength: 0, canonicalUrl: null, language: null, hasViewport: false, robotsMeta: null, h1Tags: [], h2Tags: [], h3Tags: [], totalImages: 0, imagesWithAlt: 0, internalLinks: 0, externalLinks: 0, wordCount: 0, bodyText: "", ogTitle: null, ogDescription: null, ogImage: null, ogType: null, twitterCard: null, schemaTypes: [], hasFAQSchema: false, hasHowToSchema: false, hasOrgSchema: false, hasLocalBizSchema: false, hasArticleSchema: false, hasBreadcrumbSchema: false, hasWebSiteSchema: false, questionH2Count: 0, hasOrderedLists: false, hasUnorderedLists: false, hasPhone: false, hasAddress: false, hasEmail: false, hasSocialLinks: false, hreflang: false, fetchError: true, hasGA4: false, hasUniversalAnalytics: false, hasGTM: false, hasMetaPixel: false, hasTikTokPixel: false, hasLinkedInInsight: false, hasHotjar: false, hasClarity: false, hasCookieConsent: false, hasCTAAboveFold: false, ctaText: null, socialProofScore: 0, hasTrustBadges: false, formFieldCount: 0, hasChatWidget: false, hasFreeTrialMention: false, hasTestimonials: false, hasReviewMentions: false, h1HasBenefit: false, hasPhoneInHeader: false };
+        // Start PSI and HTML fetches in parallel
+        const psiPromise = fetch(PSI_URL, { signal: AbortSignal.timeout(45000) })
+          .then(r => r.json() as Promise<PSIResponse & { error?: { code: number; message: string } }>)
+          .catch(() => null);
 
-    // Parse robots + sitemap
-    const robotsTxt = robotsResult.status === "fulfilled" ? robotsResult.value : null;
-    const sitemapXml = sitemapResult.status === "fulfilled" ? sitemapResult.value : null;
+        const htmlFetch = fetch(url, FETCH_OPTS).then(r => r.text()).catch(() => null);
+        const robotsFetch = fetch(`${origin}/robots.txt`, FETCH_OPTS).then(r => r.ok ? r.text() : null).catch(() => null);
+        const sitemapFetch = fetch(`${origin}/sitemap.xml`, FETCH_OPTS).then(r => r.ok ? r.text() : null).catch(() => null);
 
-    const blockedByCrawlers = robotsTxt ? /User-agent:\s*\*[\s\S]*?Disallow:\s*\/(?!\S)/i.test(robotsTxt) : false;
-    const sitemapFromRobots = robotsTxt ? robotsTxt.match(/Sitemap:\s*(\S+)/i)?.[1] ?? null : null;
+        // Await HTML group — PSI continues in background
+        const [htmlRaw, robotsTxt, sitemapXml] = await Promise.all([htmlFetch, robotsFetch, sitemapFetch]);
 
-    let pageCount: number | null = null;
-    if (sitemapXml) {
-      const locMatches = sitemapXml.match(/<loc>/g);
-      pageCount = locMatches ? locMatches.length : null;
-    }
+        const htmlAnalysis: HTMLAnalysis = htmlRaw ? parseHTML(htmlRaw, url)
+          : { title: null, titleLength: 0, metaDescription: null, metaDescLength: 0, canonicalUrl: null, language: null, hasViewport: false, robotsMeta: null, h1Tags: [], h2Tags: [], h3Tags: [], totalImages: 0, imagesWithAlt: 0, internalLinks: 0, externalLinks: 0, wordCount: 0, bodyText: "", ogTitle: null, ogDescription: null, ogImage: null, ogType: null, twitterCard: null, schemaTypes: [], hasFAQSchema: false, hasHowToSchema: false, hasOrgSchema: false, hasLocalBizSchema: false, hasArticleSchema: false, hasBreadcrumbSchema: false, hasWebSiteSchema: false, questionH2Count: 0, hasOrderedLists: false, hasUnorderedLists: false, hasPhone: false, hasAddress: false, hasEmail: false, hasSocialLinks: false, hreflang: false, fetchError: true, hasGA4: false, hasUniversalAnalytics: false, hasGTM: false, hasMetaPixel: false, hasTikTokPixel: false, hasLinkedInInsight: false, hasHotjar: false, hasClarity: false, hasCookieConsent: false, hasCTAAboveFold: false, ctaText: null, socialProofScore: 0, hasTrustBadges: false, formFieldCount: 0, hasChatWidget: false, hasFreeTrialMention: false, hasTestimonials: false, hasReviewMentions: false, h1HasBenefit: false, hasPhoneInHeader: false };
 
-    const siteInfo: SiteInfo = {
-      hasRobots: !!robotsTxt,
-      hasSitemap: !!sitemapXml,
-      blockedByCrawlers,
-      sitemapUrl: sitemapFromRobots ?? (sitemapXml ? `${origin}/sitemap.xml` : null),
-      pageCount,
-    };
+        const blockedByCrawlers = robotsTxt
+          ? /User-agent:\s*\*[\s\S]*?Disallow:\s*\/(?!\S)/i.test(robotsTxt) : false;
+        const sitemapFromRobots = robotsTxt ? robotsTxt.match(/Sitemap:\s*(\S+)/i)?.[1] ?? null : null;
+        let pageCount: number | null = null;
+        if (sitemapXml) {
+          const locMatches = sitemapXml.match(/<loc>/g);
+          pageCount = locMatches ? locMatches.length : null;
+        }
 
-    // PSI scores
-    const cats = psiData.lighthouseResult.categories;
-    const audits = psiData.lighthouseResult.audits ?? {};
-    const perf = cats.performance?.score ?? 0;
-    const a11y = cats.accessibility?.score ?? 0;
-    const bp = cats["best-practices"]?.score ?? 0;
-    const lhSeo = cats.seo?.score ?? 0;
+        const siteInfo: SiteInfo = {
+          hasRobots: !!robotsTxt,
+          hasSitemap: !!sitemapXml,
+          blockedByCrawlers,
+          sitemapUrl: sitemapFromRobots ?? (sitemapXml ? `${origin}/sitemap.xml` : null),
+          pageCount,
+        };
 
-    // Keywords
-    const keywords = extractKeywords(htmlAnalysis, url);
+        const keywords = extractKeywords(htmlAnalysis, url);
 
-    // Score all pillars — each wrapped so one failure doesn't cascade
-    const safePillar = (fn: () => ReturnType<typeof scorePerformance>, max: number) => {
-      try { return fn(); }
-      catch (e) { console.error("Pillar scoring error:", e); return { score: 0, points: 0, maxPoints: max, checks: [] }; }
-    };
-    const perfPillar       = safePillar(() => scorePerformance(perf), 15);
-    const techSeoPillar    = safePillar(() => scoreTechnicalSEO(lhSeo, htmlAnalysis, url, siteInfo, audits), 22);
-    const contentPillar    = safePillar(() => scoreContentKeywords(htmlAnalysis, keywords), 15);
-    const geoPillar        = safePillar(() => scoreGEO(htmlAnalysis, url), 20);
-    const aeoPillar        = safePillar(() => scoreAEO(htmlAnalysis), 20);
-    const a11yPillar       = safePillar(() => scoreAccessibility(a11y, bp), 8);
-    const croPillar        = safePillar(() => scoreCRO(htmlAnalysis, industry), 15);
-    const analyticsPillar  = safePillar(() => scoreAnalytics(htmlAnalysis), 10);
+        send("health", {
+          domain: new URL(url).hostname,
+          isHTTPS: url.startsWith("https://"),
+          hasRobots: siteInfo.hasRobots,
+          hasSitemap: siteInfo.hasSitemap,
+          pageCount,
+          schemaTypesFound: Array.from(new Set(htmlAnalysis.schemaTypes)),
+          htmlFetchError: htmlAnalysis.fetchError,
+          blockedByCrawlers,
+        });
 
-    const totalPoints = perfPillar.points + techSeoPillar.points + contentPillar.points +
-      geoPillar.points + aeoPillar.points + a11yPillar.points + croPillar.points + analyticsPillar.points;
-    const maxPoints = perfPillar.maxPoints + techSeoPillar.maxPoints + contentPillar.maxPoints +
-      geoPillar.maxPoints + aeoPillar.maxPoints + a11yPillar.maxPoints + croPillar.maxPoints + analyticsPillar.maxPoints;
-    const total = Math.round((totalPoints / maxPoints) * 100);
+        send("status", { message: "Analysing content signals\u2026" });
 
-    const recommendations = buildRecommendations(perf, lhSeo, a11y, bp, htmlAnalysis, siteInfo, keywords, url);
+        const safe = (fn: () => ReturnType<typeof scorePerformance>, fallbackMax: number) => {
+          try { return fn(); }
+          catch (e) { console.error("Pillar error:", e); return { score: 0, points: 0, maxPoints: fallbackMax, checks: [] }; }
+        };
 
-    // Critical/high counts for health banner
-    const criticalCount = recommendations.filter(r => r.priority === "critical").length;
-    const highCount = recommendations.filter(r => r.priority === "high").length;
+        // HTML pillars — send immediately
+        const contentPillar = safe(() => scoreContentKeywords(htmlAnalysis, keywords), 20);
+        send("pillar", { key: "contentKeywords", label: "Content & Keywords", description: "Keyword placement, heading structure & content depth", ...contentPillar });
 
-    return NextResponse.json({
-      score: total,
-      url,
-      health: {
-        domain: new URL(url).hostname,
-        isHTTPS: url.startsWith("https://"),
-        pageCount,
-        hasRobots: siteInfo.hasRobots,
-        hasSitemap: siteInfo.hasSitemap,
-        blockedByCrawlers,
-        criticalIssues: criticalCount,
-        highIssues: highCount,
-        totalIssues: recommendations.length,
-        schemaTypesFound: Array.from(new Set(htmlAnalysis.schemaTypes)),
-        htmlFetchError: htmlAnalysis.fetchError,
-      },
-      pillars: {
-        performance: { ...perfPillar, label: "Performance", description: "Page load speed & Core Web Vitals on mobile" },
-        technicalSeo: { ...techSeoPillar, label: "Technical SEO", description: "Crawlability, meta tags, sitemap, HTTPS & alt text" },
-        contentKeywords: { ...contentPillar, label: "Content & Keywords", description: "Keyword placement, heading structure & content depth" },
-        geoReadiness: { ...geoPillar, label: "GEO Readiness", description: "Will AI systems cite you? Entity schema, NAP & authority" },
-        aeoReadiness: { ...aeoPillar, label: "AEO Readiness", description: "Featured snippets, PAA boxes & voice search answers" },
-        accessibility: { ...a11yPillar, label: "Accessibility & Tech", description: "WCAG compliance & modern web standards" },
-        cro: { ...croPillar, label: "Conversion", description: "CTA clarity, social proof, trust signals & form friction" },
-        analytics: { ...analyticsPillar, label: "Analytics Health", description: "GA4, GTM, pixels & measurement completeness" },
-      },
-      keywords: {
-        top: keywords,
-        coverageScore: keywords.length > 0
-          ? Math.round(keywords.slice(0, 5).reduce((acc, k) => acc + ([k.inTitle, k.inH1, k.inMetaDesc, k.inURL].filter(Boolean).length / 4), 0) / Math.min(keywords.length, 5) * 100)
-          : 0,
-      },
-      recommendations: recommendations.slice(0, 8),
-      gatedRecsCount: Math.max(0, recommendations.length - 3),
-    });
+        const geoPillar = safe(() => scoreGEO(htmlAnalysis, url), 20);
+        send("pillar", { key: "geoReadiness", label: "GEO Readiness", description: "Will AI systems cite you? Entity schema, NAP & authority", ...geoPillar });
 
-  } catch (err) {
-    const e = err as Error;
-    if (e.name === "AbortError" || e.name === "TimeoutError")
-      return NextResponse.json({ error: "Analysis timed out. The site may be very slow — try again in a moment." }, { status: 504 });
-    console.error("Audit error:", e);
-    return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: 500 });
-  }
+        const aeoPillar = safe(() => scoreAEO(htmlAnalysis), 20);
+        send("pillar", { key: "aeoReadiness", label: "AEO Readiness", description: "Featured snippets, PAA boxes & voice search answers", ...aeoPillar });
+
+        const croPillar = safe(() => scoreCRO(htmlAnalysis, industry), 15);
+        send("pillar", { key: "cro", label: "Conversion", description: "CTA clarity, social proof, trust signals & form friction", ...croPillar });
+
+        const analyticsPillar = safe(() => scoreAnalytics(htmlAnalysis), 10);
+        send("pillar", { key: "analytics", label: "Analytics Health", description: "GA4, GTM, pixels & measurement completeness", ...analyticsPillar });
+
+        const coverageScore = keywords.length > 0
+          ? Math.round(keywords.slice(0, 5).reduce((acc, k) =>
+              acc + ([k.inTitle, k.inH1, k.inMetaDesc, k.inURL].filter(Boolean).length / 4), 0)
+              / Math.min(keywords.length, 5) * 100) : 0;
+        send("keywords", { top: keywords, coverageScore });
+
+        // Wait for PSI, then stream PSI pillars
+        send("status", { message: "Processing performance data\u2026" });
+        const psiData = await psiPromise;
+
+        let perf = 0, a11y = 0, bp = 0, lhSeo = 0;
+        let audits: Record<string, PSIAudit> = {};
+
+        if (psiData?.lighthouseResult) {
+          const cats = psiData.lighthouseResult.categories;
+          audits = psiData.lighthouseResult.audits ?? {};
+          perf = cats.performance?.score ?? 0;
+          a11y = cats.accessibility?.score ?? 0;
+          bp = cats["best-practices"]?.score ?? 0;
+          lhSeo = cats.seo?.score ?? 0;
+        }
+
+        send("status", { message: "Calculating your score\u2026" });
+
+        const perfPillar = safe(() => scorePerformance(perf), 15);
+        send("pillar", { key: "performance", label: "Performance", description: "Page load speed & Core Web Vitals on mobile", ...perfPillar });
+
+        const techSeoPillar = safe(() => scoreTechnicalSEO(lhSeo, htmlAnalysis, url, siteInfo, audits), 25);
+        send("pillar", { key: "technicalSeo", label: "Technical SEO", description: "Crawlability, meta tags, sitemap, HTTPS & alt text", ...techSeoPillar });
+
+        const a11yPillar = safe(() => scoreAccessibility(a11y, bp), 8);
+        send("pillar", { key: "accessibility", label: "Accessibility & Tech", description: "WCAG compliance & modern web standards", ...a11yPillar });
+
+        const allPillars = [perfPillar, techSeoPillar, contentPillar, geoPillar, aeoPillar, a11yPillar, croPillar, analyticsPillar];
+        const totalPoints = allPillars.reduce((s, p) => s + p.points, 0);
+        const maxPoints = allPillars.reduce((s, p) => s + p.maxPoints, 0);
+        const total = Math.round((totalPoints / maxPoints) * 100);
+
+        const recommendations = buildRecommendations(perf, lhSeo, a11y, bp, htmlAnalysis, siteInfo, keywords, url);
+        const criticalCount = recommendations.filter(r => r.priority === "critical").length;
+        const highCount = recommendations.filter(r => r.priority === "high").length;
+
+        send("complete", {
+          score: total,
+          url,
+          health: {
+            domain: new URL(url).hostname,
+            isHTTPS: url.startsWith("https://"),
+            pageCount,
+            hasRobots: siteInfo.hasRobots,
+            hasSitemap: siteInfo.hasSitemap,
+            blockedByCrawlers,
+            criticalIssues: criticalCount,
+            highIssues: highCount,
+            totalIssues: recommendations.length,
+            schemaTypesFound: Array.from(new Set(htmlAnalysis.schemaTypes)),
+            htmlFetchError: htmlAnalysis.fetchError,
+          },
+          recommendations: recommendations.slice(0, 8),
+          gatedRecsCount: Math.max(0, recommendations.length - 3),
+        });
+
+      } catch (err) {
+        const e = err as Error;
+        if (e.name === "AbortError" || e.name === "TimeoutError") {
+          send("error", { message: "Analysis timed out. The site may be very slow \u2014 try again in a moment." });
+        } else {
+          console.error("Stream audit error:", e);
+          send("error", { message: "Something went wrong. Please try again." });
+        }
+      } finally {
+        try { controller.close(); } catch { /* already closed */ }
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
 }

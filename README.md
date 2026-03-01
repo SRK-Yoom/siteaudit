@@ -51,5 +51,5 @@ Once you start seeing rate limit errors (HTTP 429), get a free key:
 ## Customisation
 
 - **Brand name / colours** → `tailwind.config.ts` (edit `brand` colours) + `src/app/layout.tsx` (metadata)
-- **CTA links** → `src/app/page.tsx` → search for `clearsight.agency` and replace with your links
+- **CTA links** → `src/app/page.tsx` → search for `yoom.digital` and replace with your links
 - **Scoring weights** → `src/app/api/audit/route.ts` → `toPoints()` calls
