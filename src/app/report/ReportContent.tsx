@@ -187,6 +187,25 @@ export function ReportContent({ auditData, email, url, token }: {
   const [authOpen, setAuthOpen] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  const handlePlanCheckout = async (plan: "starter" | "growth" | "authority") => {
+    setCheckoutLoading(plan);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, email: email || undefined, domain: (() => { try { return new URL(url).hostname; } catch { return url; } })() }),
+      });
+      const data = await res.json() as { url?: string; error?: string };
+      if (data.url) window.location.href = data.url;
+      else alert(data.error ?? "Checkout failed");
+    } catch {
+      alert("Could not start checkout.");
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
 
   const auditForPDF = {
     id: token, url,
@@ -459,9 +478,9 @@ export function ReportContent({ auditData, email, url, token }: {
                         <div className="flex items-center gap-2">
                           <Lock className="w-3.5 h-3.5 text-[#7C3AED] shrink-0" />
                           <span className="text-xs font-semibold text-[#374151]">How to fix:</span>
-                          <button onClick={() => setAuthOpen(true)} className="text-xs font-bold text-[#7C3AED] hover:underline transition-colors">
-                            Sign up free to unlock →
-                          </button>
+                          <a href="#plans" className="text-xs font-bold text-[#7C3AED] hover:underline transition-colors">
+                            Choose a plan to unlock →
+                          </a>
                         </div>
                         <p className="text-xs text-[#9CA3AF] mt-1 blur-sm select-none pointer-events-none" aria-hidden="true">{rec.fix}</p>
                       </div>
@@ -500,12 +519,11 @@ export function ReportContent({ auditData, email, url, token }: {
                   <Lock className="w-6 h-6 text-[#7C3AED]" />
                 </div>
                 <p className="text-[#0F0A1E] font-bold text-lg mb-1">{gatedRecsCount} more issues found</p>
-                <p className="text-[#6B7280] text-sm max-w-xs mb-5">Create a free account to see every issue, track your score over time, and get step-by-step fixes.</p>
-                <button onClick={() => setAuthOpen(true)}
-                  className="inline-flex items-center gap-2 px-7 py-3 text-sm font-bold text-white rounded-xl shadow-lg"
+                <p className="text-[#6B7280] text-sm max-w-xs mb-5">Choose the Starter plan to unlock every issue and step-by-step how-to guides.</p>
+                <a href="#plans" className="inline-flex items-center gap-2 px-7 py-3 text-sm font-bold text-white rounded-xl shadow-lg"
                   style={{ background: "linear-gradient(135deg, #7C3AED, #DB2777)" }}>
-                  Unlock All Issues — Free <ArrowRight className="w-4 h-4" />
-                </button>
+                  Choose a plan to unlock all <ArrowRight className="w-4 h-4" />
+                </a>
               </div>
             </motion.div>
           )}
@@ -546,11 +564,11 @@ export function ReportContent({ auditData, email, url, token }: {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               {[
-                { name: "Starter",   price: "$499",  roi: "~$1,200 avg. ROI", features: ["Title & meta optimisation", "Basic Schema markup", "Speed quick-wins", "Full audit report PDF"], cta: "Get Started", highlight: false },
-                { name: "Growth",    price: "$999",  roi: "~$3,500 avg. ROI", features: ["Everything in Starter", "Full Technical SEO fix", "GEO & AEO Schema setup", "FAQ & HowTo schema", "30-day check-in"], cta: "Fix My Site", highlight: true },
-                { name: "Authority", price: "$1,999",roi: "~$8,000+ avg. ROI", features: ["Everything in Growth", "Content strategy brief", "Link building strategy", "Monthly reporting", "90-day Slack support"], cta: "Let's Talk", highlight: false },
+                { slug: "starter" as const, name: "Starter", price: "£99", desc: "Unlock all details — you do it yourself", features: ["Full report & every recommendation", "Step-by-step how-to guides", "All issues + fix instructions", "Lifetime access to this report"], cta: "Unlock report — £99", highlight: false },
+                { slug: "growth" as const, name: "Growth", price: "£999", desc: "We fix it for you", features: ["Everything in Starter", "We implement all fixes", "GEO & AEO Schema setup", "30-day check-in"], cta: "Fix my site — £999", highlight: true },
+                { slug: "authority" as const, name: "Authority", price: "£1,999", desc: "Full service + strategy", features: ["Everything in Growth", "Content strategy brief", "Link building strategy", "90-day Slack support"], cta: "Get full service — £1,999", highlight: false },
               ].map((plan) => (
-                <div key={plan.name} className="relative rounded-2xl p-6 flex flex-col bg-white transition-all duration-200"
+                <div key={plan.slug} className="relative rounded-2xl p-6 flex flex-col bg-white transition-all duration-200"
                   style={plan.highlight
                     ? { background: "linear-gradient(145deg, rgba(124,58,237,0.04), rgba(219,39,119,0.03))", border: "2px solid rgba(124,58,237,0.25)", boxShadow: "0 12px 40px rgba(124,58,237,0.12)" }
                     : { border: "1px solid #E5E7EB", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
@@ -560,7 +578,7 @@ export function ReportContent({ auditData, email, url, token }: {
                   )}
                   <p className="text-xs font-bold text-[#9CA3AF] uppercase tracking-widest mb-1">{plan.name}</p>
                   <span className="text-3xl font-black text-[#0F0A1E] mb-0.5">{plan.price}</span>
-                  <p className="text-xs font-semibold text-[#7C3AED] mb-4">{plan.roi}</p>
+                  <p className="text-xs font-semibold text-[#7C3AED] mb-4">{plan.desc}</p>
                   <ul className="space-y-2 mb-6 flex-1">
                     {plan.features.map(f => (
                       <li key={f} className="flex items-center gap-2 text-sm text-[#374151]">
@@ -569,12 +587,12 @@ export function ReportContent({ auditData, email, url, token }: {
                       </li>
                     ))}
                   </ul>
-                  <button onClick={() => setAuthOpen(true)}
-                    className={`w-full text-center text-sm font-bold py-3 rounded-xl transition-all`}
+                  <button onClick={() => handlePlanCheckout(plan.slug)} disabled={!!checkoutLoading}
+                    className="w-full text-center text-sm font-bold py-3 rounded-xl transition-all disabled:opacity-70"
                     style={plan.highlight
                       ? { background: "linear-gradient(135deg, #7C3AED, #DB2777)", color: "white" }
                       : { background: "#F9FAFB", color: "#374151", border: "1px solid #E5E7EB" }}>
-                    {plan.cta} →
+                    {checkoutLoading === plan.slug ? "Taking you to checkout…" : plan.cta}
                   </button>
                 </div>
               ))}
@@ -590,11 +608,10 @@ export function ReportContent({ auditData, email, url, token }: {
                 We fix sites like {host} every week
               </div>
               <h3 className="text-2xl sm:text-3xl font-black text-white mb-3">Ready to fix this?</h3>
-              <p className="text-white/70 text-base max-w-lg mx-auto mb-7 leading-relaxed">Our team handles everything — one week, measurable results. Book a free 30-min call to walk through your audit.</p>
-              <button onClick={() => setAuthOpen(true)}
-                className="inline-flex items-center gap-2 bg-white text-[#6D28D9] font-bold px-8 py-4 rounded-2xl hover:bg-white/90 transition-colors text-base shadow-xl">
-                Get Started — It&apos;s Free <ArrowRight className="w-5 h-5" />
-              </button>
+              <p className="text-white/70 text-base max-w-lg mx-auto mb-7 leading-relaxed">Choose a plan above — pay once, we deliver. Or unlock the full report yourself with Starter.</p>
+              <a href="#plans" className="inline-flex items-center gap-2 bg-white text-[#6D28D9] font-bold px-8 py-4 rounded-2xl hover:bg-white/90 transition-colors text-base shadow-xl">
+                Choose a plan <ArrowRight className="w-5 h-5" />
+              </a>
               <a href="/" className="inline-flex items-center gap-1.5 mt-5 text-white/60 text-xs hover:text-white/80 transition-colors">
                 <RotateCcw className="w-3.5 h-3.5" />Run another audit
               </a>

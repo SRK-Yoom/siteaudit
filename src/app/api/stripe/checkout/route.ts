@@ -25,6 +25,13 @@ const TITLE_MAP: Record<string, string> = {
   "full-geo-aeo":  "Full GEO + AEO Setup",
 };
 
+// Subscription plans — direct checkout
+const PLANS: Record<string, { amount: number; name: string; description: string }> = {
+  starter:   { amount: 99,  name: "Starter — Unlock all report details", description: "Full how-to guides; you implement yourself." },
+  growth:    { amount: 999, name: "Growth — We fix it for you",         description: "Full technical + GEO/AEO fix, 30-day check-in." },
+  authority: { amount: 1999, name: "Authority — Full service",         description: "Strategy, content brief, link building, 90-day support." },
+};
+
 interface CartItem {
   id: string;
   quantity?: number;
@@ -32,12 +39,44 @@ interface CartItem {
 
 export async function POST(req: NextRequest) {
   try {
-    const { items, email, domain } = await req.json() as {
-      items: CartItem[];
-      email: string;
-      domain: string;
+    const body = await req.json() as {
+      plan?: keyof typeof PLANS;
+      items?: CartItem[];
+      email?: string;
+      domain?: string;
     };
 
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://siteaudit-rho.vercel.app";
+
+    // Plan checkout (single payment)
+    if (body.plan && PLANS[body.plan]) {
+      const plan = PLANS[body.plan];
+      const stripe = getStripe();
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: [{
+          price_data: {
+            currency: "gbp",
+            product_data: {
+              name: plan.name,
+              description: plan.description,
+              metadata: { plan: body.plan },
+            },
+            unit_amount: plan.amount * 100,
+          },
+          quantity: 1,
+        }],
+        mode: "payment",
+        customer_email: body.email || undefined,
+        metadata: { plan: body.plan, domain: body.domain || "", email: body.email || "" },
+        success_url: `${baseUrl}/order/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/dashboard`,
+      });
+      return NextResponse.json({ url: session.url });
+    }
+
+    // Cart (legacy fix-cart items)
+    const { items, email, domain } = body;
     if (!items?.length) {
       return NextResponse.json({ error: "No items in cart" }, { status: 400 });
     }
@@ -51,7 +90,7 @@ export async function POST(req: NextRequest) {
           currency: "gbp",
           product_data: {
             name: title,
-            metadata: { item_id: item.id, domain },
+            metadata: { item_id: item.id, domain: domain || "" },
           },
           unit_amount: price * 100,
         },
@@ -65,9 +104,9 @@ export async function POST(req: NextRequest) {
       line_items: lineItems,
       mode: "payment",
       customer_email: email || undefined,
-      metadata: { domain, email },
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/order/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`,
+      metadata: { domain: domain || "", email: email || "" },
+      success_url: `${baseUrl}/order/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/dashboard`,
     });
 
     return NextResponse.json({ url: session.url });

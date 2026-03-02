@@ -31,7 +31,7 @@ interface AuditData {
   gatedRecsCount: number;
 }
 interface StreamHealth { domain: string; isHTTPS: boolean; hasRobots: boolean; hasSitemap: boolean; pageCount: number | null; schemaTypesFound: string[]; htmlFetchError: boolean; blockedByCrawlers: boolean }
-type Stage = "idle" | "loading" | "email-gate" | "results" | "error";
+type Stage = "idle" | "loading" | "create-account" | "results" | "error";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -174,43 +174,14 @@ function LoadingScreen({ url }: { url: string }) {
 
 // ── Email Gate Screen ───────────────────────────────────────────────────────
 
-function EmailGateScreen({ score, url, auditData, onReset }: {
-  score: number; url: string; auditData: AuditData; onReset: () => void;
+// ── Create account to view report (no email link — one step) ─────────────────
+function CreateAccountScreen({ score, url, auditData, onReset, onOpenAuth }: {
+  score: number; url: string; auditData: AuditData; onReset: () => void; onOpenAuth: () => void;
 }) {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
   let host = url;
   try { host = new URL(url).hostname; } catch {}
-
   const scoreLabel = score >= 90 ? "Excellent" : score >= 70 ? "Good" : score >= 50 ? "Needs Work" : "Critical Issues";
   const scoreColor = score >= 90 ? "#059669" : score >= 70 ? "#7C3AED" : score >= 50 ? "#D97706" : "#DC2626";
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) return;
-    setLoading(true);
-    setApiError(null);
-    try {
-      const res = await fetch("/api/leads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), url, score, auditData }),
-      });
-      const data = await res.json() as { success?: boolean; error?: string };
-      if (!res.ok || !data.success) {
-        setApiError(data.error ?? "Something went wrong. Please try again.");
-        setLoading(false);
-        return;
-      }
-      setSubmitted(true);
-    } catch {
-      setApiError("Network error. Please check your connection.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center relative overflow-hidden">
@@ -224,101 +195,51 @@ function EmailGateScreen({ score, url, auditData, onReset }: {
       >
         <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ background: "linear-gradient(90deg, #7C3AED, #C026D3, #DB2777)" }} />
 
-        <AnimatePresence mode="wait">
-          {submitted ? (
-            /* ── Email sent confirmation ── */
-            <motion.div key="sent" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.35 }}
-              className="text-center py-2">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ background: "rgba(16,185,129,0.08)", border: "2px solid rgba(16,185,129,0.2)" }}>
-                <Mail className="w-7 h-7 text-green-500" />
-              </div>
-              <h2 className="text-2xl font-black text-ink mb-2">Check your inbox!</h2>
-              <p className="text-ink-3 text-sm leading-relaxed mb-1">
-                We sent your report link to:
-              </p>
-              <p className="font-bold text-brand text-sm mb-5">{email}</p>
-              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-left mb-6">
-                {["Open the email from SiteScore", "Click the secure link inside", "Your full report will load instantly"].map((step, i) => (
-                  <div key={i} className="flex items-center gap-3 mb-2 last:mb-0">
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-xs font-black text-white"
-                      style={{ background: "linear-gradient(135deg, #7C3AED, #DB2777)" }}>{i + 1}</div>
-                    <span className="text-sm text-ink-2">{step}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-ink-4 mb-4">The link expires in 7 days. Check your spam folder if you don&apos;t see it within a minute.</p>
-              <button onClick={onReset} className="text-xs text-brand hover:text-brand-dark underline underline-offset-2 transition-colors">
-                Audit a different website
-              </button>
-            </motion.div>
-          ) : (
-            /* ── Email input form ── */
-            <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.25 }}>
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                style={{ background: `${scoreColor}12`, border: `2px solid ${scoreColor}25` }}>
-                <CheckCircle className="w-7 h-7" style={{ color: scoreColor }} />
-              </div>
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+          style={{ background: `${scoreColor}12`, border: `2px solid ${scoreColor}25` }}>
+          <CheckCircle className="w-7 h-7" style={{ color: scoreColor }} />
+        </div>
 
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mb-3"
-                style={{ background: "rgba(124,58,237,0.07)", color: "#7C3AED", border: "1px solid rgba(124,58,237,0.13)" }}>
-                <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-                Audit complete · {host}
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mb-3"
+          style={{ background: "rgba(124,58,237,0.07)", color: "#7C3AED", border: "1px solid rgba(124,58,237,0.13)" }}>
+          <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+          Audit complete · {host}
+        </div>
+
+        <h2 className="text-2xl sm:text-3xl font-black text-ink mb-2">
+          Your report is <span className="gradient-text">ready!</span>
+        </h2>
+        <p className="text-ink-3 text-sm leading-relaxed mb-6">
+          Create a free account to view your full report on your dashboard — score breakdown, keyword analysis, and every fix we recommend.
+        </p>
+
+        {/* Score teaser */}
+        <div className="flex items-center justify-center gap-4 mb-6 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+          <div>
+            <p className="text-xs text-ink-4 font-medium mb-0.5">Overall Score</p>
+            <p className="text-4xl font-black tabular-nums" style={{ color: scoreColor }}>{score}</p>
+            <p className="text-xs font-semibold mt-0.5" style={{ color: scoreColor }}>{scoreLabel}</p>
+          </div>
+          <div className="w-px h-12 bg-gray-200" />
+          <div className="text-left">
+            <p className="text-xs text-ink-4 mb-1.5">Your report includes:</p>
+            {["8-pillar score breakdown", "Keyword coverage analysis", "Prioritised fix list"].map(item => (
+              <div key={item} className="flex items-center gap-1.5 text-xs text-ink-3 mt-1">
+                <CheckCircle className="w-3.5 h-3.5 text-brand shrink-0" />{item}
               </div>
+            ))}
+          </div>
+        </div>
 
-              <h2 className="text-2xl sm:text-3xl font-black text-ink mb-2">
-                Your report is <span className="gradient-text">ready!</span>
-              </h2>
-              <p className="text-ink-3 text-sm leading-relaxed mb-5">
-                We&apos;ll email you a secure link to view your full report — including your score breakdown, keyword analysis, and every issue we found.
-              </p>
-
-              {/* Score teaser */}
-              <div className="flex items-center justify-center gap-4 mb-5 p-4 rounded-2xl bg-gray-50 border border-gray-100">
-                <div>
-                  <p className="text-xs text-ink-4 font-medium mb-0.5">Overall Score</p>
-                  <p className="text-4xl font-black tabular-nums" style={{ color: scoreColor }}>{score}</p>
-                  <p className="text-xs font-semibold mt-0.5" style={{ color: scoreColor }}>{scoreLabel}</p>
-                </div>
-                <div className="w-px h-12 bg-gray-200" />
-                <div className="text-left">
-                  <p className="text-xs text-ink-4 mb-1.5">Your report includes:</p>
-                  {["6-pillar score breakdown", "Keyword coverage analysis", "Prioritised fix list"].map(item => (
-                    <div key={item} className="flex items-center gap-1.5 text-xs text-ink-3 mt-1">
-                      <CheckCircle className="w-3.5 h-3.5 text-brand shrink-0" />{item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-4" />
-                  <input
-                    type="email" value={email} onChange={e => setEmail(e.target.value)}
-                    placeholder="your@email.com" required
-                    className="input-field w-full pl-10 pr-4 py-3.5 text-sm"
-                    autoFocus
-                  />
-                </div>
-                {apiError && (
-                  <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
-                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
-                    <p className="text-xs text-red-600">{apiError}</p>
-                  </div>
-                )}
-                <button type="submit" disabled={loading || !email.trim()} className="btn-gradient w-full flex items-center justify-center gap-2 py-3.5 text-sm">
-                  {loading
-                    ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Sending your report…</span></>
-                    : <><span>Email Me My Report</span><ArrowRight className="w-4 h-4" /></>}
-                </button>
-              </form>
-              <p className="text-xs text-ink-4 mt-3">
-                We&apos;ll send a secure link to your email. No spam, ever.
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <button type="button" onClick={onOpenAuth} className="btn-gradient w-full flex items-center justify-center gap-2 py-3.5 text-sm mb-3">
+          <User className="w-4 h-4" /><span>Create free account to view report</span><ArrowRight className="w-4 h-4" />
+        </button>
+        <p className="text-xs text-ink-4 mb-4">
+          Sign up with email or use Google / Apple. You&apos;ll land on your dashboard with this report saved.
+        </p>
+        <button type="button" onClick={onReset} className="text-xs text-brand hover:text-brand-dark underline underline-offset-2 transition-colors">
+          Audit a different website
+        </button>
       </motion.div>
     </div>
   );
@@ -1772,6 +1693,7 @@ function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef, onSignUp }: {
 
 export default function Home() {
   const { user } = useAuth();
+  const router = useRouter();
   const [stage, setStage] = useState<Stage>("idle");
   const [inputUrl, setInputUrl] = useState("");
   const [submittedUrl, setSubmittedUrl] = useState("");
@@ -1905,7 +1827,7 @@ export default function Home() {
             };
             setAuditData(fullData);
             if (user) { saveAudit(fullData); setStage("results"); }
-            else { setStage("email-gate"); }
+            else { setStage("create-account"); }
             window.scrollTo({ top: 0, behavior: "smooth" });
           } else if (eventType === "error") {
             setErrorMsg((data.message as string) ?? "Something went wrong.");
@@ -1938,10 +1860,28 @@ export default function Home() {
       <NavBar onLogoClick={stage !== "idle" ? handleReset : undefined} onSignIn={handleOpenSignIn} onSignUp={handleOpenSignUp} />
 
       <AuthModal
-        isOpen={authOpen} onClose={() => setAuthOpen(false)} initialMode={authMode}
-        headline={pendingSave ? "Save your audit report" : undefined}
-        subheadline={pendingSave ? "Create a free account to track your score over time." : undefined}
-        onSuccess={() => { setAuthOpen(false); }}
+        isOpen={authOpen}
+        onClose={() => setAuthOpen(false)}
+        initialMode={authMode}
+        headline={stage === "create-account" ? "Create your free account" : pendingSave ? "Save your audit report" : undefined}
+        subheadline={stage === "create-account" ? "You'll land on your dashboard with this report ready to view." : pendingSave ? "Create a free account to track your score over time." : undefined}
+        onBeforeOAuth={() => {
+          if (stage === "create-account" && auditData && typeof window !== "undefined") {
+            try {
+              sessionStorage.setItem("pendingAudit", JSON.stringify({ auditData, url: submittedUrl }));
+            } catch {}
+          }
+        }}
+        onSuccess={() => {
+          setAuthOpen(false);
+          if (stage === "create-account" && auditData) {
+            saveAudit(auditData);
+            router.push("/dashboard");
+          } else if (pendingSave && auditData) {
+            saveAudit(auditData);
+            setSavedToAccount(true);
+          }
+        }}
       />
 
       <AnimatePresence mode="wait">
@@ -1964,9 +1904,23 @@ export default function Home() {
           </motion.div>
         )}
 
-        {stage === "email-gate" && auditData && (
-          <motion.div key="email-gate" className="flex-1 flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-            <EmailGateScreen score={auditData.score} url={submittedUrl} auditData={auditData} onReset={handleReset} />
+        {stage === "create-account" && auditData && (
+          <motion.div key="create-account" className="flex-1 flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+            <CreateAccountScreen
+              score={auditData.score}
+              url={submittedUrl}
+              auditData={auditData}
+              onReset={handleReset}
+              onOpenAuth={() => {
+                if (typeof window !== "undefined") {
+                  try {
+                    sessionStorage.setItem("pendingAudit", JSON.stringify({ auditData, url: submittedUrl }));
+                  } catch {}
+                }
+                setAuthMode("signup");
+                setAuthOpen(true);
+              }}
+            />
           </motion.div>
         )}
 

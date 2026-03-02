@@ -420,7 +420,19 @@ function MySitesTab({
 
 // ── Overview Tab ───────────────────────────────────────────────────────────
 
-function OverviewTab({ audits, profile, onNewAudit }: { audits: AuditRecord[]; profile: Profile | null; onNewAudit: () => void }) {
+function OverviewTab({
+  audits,
+  profile,
+  onNewAudit,
+  onPlanCheckout,
+  checkoutLoading,
+}: {
+  audits: AuditRecord[];
+  profile: Profile | null;
+  onNewAudit: () => void;
+  onPlanCheckout?: (plan: "starter" | "growth" | "authority") => void;
+  checkoutLoading?: string | null;
+}) {
   const latest = audits[0];
   const previous = audits[1];
   const diff = latest && previous ? latest.overall_score - previous.overall_score : null;
@@ -435,6 +447,28 @@ function OverviewTab({ audits, profile, onNewAudit }: { audits: AuditRecord[]; p
 
   return (
     <div className="space-y-6">
+      {/* Choose a plan CTA */}
+      {onPlanCheckout && (
+        <motion.div className="rounded-2xl p-5 border border-brand/20 bg-gradient-to-br from-brand/10 to-transparent" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <p className="text-xs font-bold text-ink-4 uppercase tracking-widest mb-2">Get your site fixed</p>
+          <p className="text-sm font-semibold text-white mb-3">Choose a plan — we deliver the fixes or you unlock the full report and do it yourself.</p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => onPlanCheckout("starter")} disabled={!!checkoutLoading}
+              className="text-xs font-bold px-4 py-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white transition-colors disabled:opacity-60">
+              {checkoutLoading === "starter" ? "…" : "Starter £99"}
+            </button>
+            <button onClick={() => onPlanCheckout("growth")} disabled={!!checkoutLoading}
+              className="text-xs font-bold px-4 py-2 rounded-xl bg-brand hover:bg-brand-dark text-white transition-colors disabled:opacity-60">
+              {checkoutLoading === "growth" ? "…" : "Growth £999 — We fix it"}
+            </button>
+            <button onClick={() => onPlanCheckout("authority")} disabled={!!checkoutLoading}
+              className="text-xs font-bold px-4 py-2 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white transition-colors disabled:opacity-60">
+              {checkoutLoading === "authority" ? "…" : "Authority £1,999"}
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <motion.div className="card rounded-2xl p-4" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
@@ -1043,12 +1077,50 @@ export default function DashboardPage() {
     if (user) fetchData();
   }, [user, authLoading, fetchData, router]);
 
+  // Restore audit saved before OAuth redirect (create-account flow)
+  useEffect(() => {
+    if (!user || typeof window === "undefined") return;
+    try {
+      const raw = sessionStorage.getItem("pendingAudit");
+      if (!raw) return;
+      const { auditData } = JSON.parse(raw) as { auditData: unknown; url?: string };
+      sessionStorage.removeItem("pendingAudit");
+      fetch("/api/reports/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ auditData }),
+      }).then((res) => { if (res.ok) fetchData(); });
+    } catch {}
+  }, [user, fetchData]);
+
   const handleIndustryComplete = (industry: IndustryKey) => {
     setProfile(prev => prev ? { ...prev, industry } : null);
     setShowIndustryModal(false);
   };
 
   const handleNewAudit = () => router.push("/");
+
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const handlePlanCheckout = async (plan: "starter" | "growth" | "authority") => {
+    setCheckoutLoading(plan);
+    try {
+      const site = websites.find(w => w.id === activeSiteId);
+      let domain = site?.domain ?? "";
+      if (!domain && audits[0]?.url) { try { domain = new URL(audits[0].url).hostname; } catch {} }
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, email: user?.email ?? undefined, domain }),
+      });
+      const data = await res.json() as { url?: string; error?: string };
+      if (data.url) window.location.href = data.url;
+      else alert(data.error ?? "Checkout failed");
+    } catch {
+      alert("Could not start checkout.");
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
 
   const handleViewReports = (siteId: string) => {
     setActiveSiteId(siteId);
@@ -1161,7 +1233,7 @@ export default function DashboardPage() {
         <div className="px-6 md:px-8 py-6 pb-24 md:pb-8 max-w-5xl">
           <AnimatePresence mode="wait">
             <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-              {activeTab === "overview"    && <OverviewTab audits={filteredAudits} profile={profile} onNewAudit={handleNewAudit} />}
+              {activeTab === "overview"    && <OverviewTab audits={filteredAudits} profile={profile} onNewAudit={handleNewAudit} onPlanCheckout={handlePlanCheckout} checkoutLoading={checkoutLoading} />}
               {activeTab === "my-sites"    && <MySitesTab websites={websites} onNewAudit={handleNewAudit} onViewReports={handleViewReports} />}
               {activeTab === "reports"     && <ReportsTab audits={filteredAudits} onNewAudit={handleNewAudit} />}
               {activeTab === "action-plan" && <ActionPlanTab audits={filteredAudits} onNewAudit={handleNewAudit} />}
