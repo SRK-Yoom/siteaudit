@@ -1412,9 +1412,20 @@ function PreviewTab2() {
 
 // ── Streaming Loading Screen ────────────────────────────────────────────────
 
-const PILLAR_ORDER = ["contentKeywords", "geoReadiness", "aeoReadiness", "cro", "analytics", "performance", "technicalSeo", "accessibility"];
+const PILLAR_ORDER = ["performance", "technicalSeo", "contentKeywords", "geoReadiness", "aeoReadiness", "accessibility", "cro", "analytics"];
 
-function StreamingScreen({ url, statusMsg, streamHealth, streamedPillars, streamKeywords, streamScore }: {
+const PILLAR_LABELS: Record<string, string> = {
+  performance: "Performance & Speed",
+  technicalSeo: "Technical SEO",
+  contentKeywords: "Content & Keywords",
+  geoReadiness: "GEO Readiness",
+  aeoReadiness: "AEO Readiness",
+  accessibility: "Accessibility",
+  cro: "Conversion (CRO)",
+  analytics: "Analytics & Tracking",
+};
+
+function StreamingScreen({ url, streamedPillars, streamScore }: {
   url: string;
   statusMsg: string;
   streamHealth: StreamHealth | null;
@@ -1426,112 +1437,133 @@ function StreamingScreen({ url, statusMsg, streamHealth, streamedPillars, stream
   try { host = new URL(url).hostname; } catch {}
 
   const arrivedKeys = PILLAR_ORDER.filter(k => streamedPillars[k]);
-  const pendingKeys = PILLAR_ORDER.filter(k => !streamedPillars[k]);
-  const hasAnyPillar = arrivedKeys.length > 0;
+  const currentIdx = arrivedKeys.length;
+  const pct = Math.round((currentIdx / PILLAR_ORDER.length) * 100);
+
+  const circumference = 2 * Math.PI * 54;
+  const scorePct = Math.min(100, Math.max(0, streamScore));
+  const dashOffset = circumference - (circumference * scorePct) / 100;
+  const scoreColor = streamScore >= 70 ? "#059669" : streamScore >= 50 ? "#D97706" : streamScore > 0 ? "#DC2626" : "#9CA3AF";
 
   return (
-    <div className="flex-1 pb-24 bg-surface">
-      <div className="max-w-content mx-auto px-6 py-6">
+    <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden" style={{ minHeight: "calc(100vh - 64px)" }}>
+      <div className="absolute rounded-full pointer-events-none" style={{ width: 500, height: 500, top: -140, left: -140, background: "radial-gradient(circle, rgba(124,58,237,0.08), transparent)", filter: "blur(80px)" }} />
+      <div className="absolute rounded-full pointer-events-none" style={{ width: 400, height: 400, bottom: -100, right: -100, background: "radial-gradient(circle, rgba(219,39,119,0.06), transparent)", filter: "blur(70px)" }} />
 
-        {/* Status bar */}
-        <motion.div className="flex items-center gap-3 mb-6 py-3 px-4 bg-white border border-gray-100 rounded-2xl shadow-sm"
-          initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-          <span className="w-2 h-2 rounded-full bg-brand animate-pulse shrink-0" />
-          <p className="text-sm text-ink-2 font-medium flex-1">{statusMsg || "Starting analysis\u2026"}</p>
-          <span className="text-xs text-ink-4 font-medium hidden sm:block">{host}</span>
-          {hasAnyPillar && (
-            <span className="text-xs text-ink-4 tabular-nums">{arrivedKeys.length}/{PILLAR_ORDER.length} signals</span>
-          )}
-        </motion.div>
+      <motion.div className="relative bg-white rounded-3xl w-full max-w-lg overflow-hidden"
+        style={{ boxShadow: "0 32px 80px rgba(124,58,237,0.12), 0 4px 16px rgba(0,0,0,0.06)" }}
+        initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.5 }}>
 
-        {/* Score + spinner row */}
-        {hasAnyPillar ? (
-          <motion.div className="card rounded-3xl p-6 flex items-center gap-8 mb-6"
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <div className="shrink-0"><ScoreCircle score={streamScore} size={160} /></div>
-            <div className="flex-1">
-              <p className="text-xs text-ink-4 uppercase tracking-widest font-semibold mb-1">Live score — updating</p>
-              <p className="text-lg font-bold text-ink">Results loading in real-time</p>
-              <p className="text-sm text-ink-3 mt-1">{arrivedKeys.length} of {PILLAR_ORDER.length} pillars complete</p>
-              <div className="mt-3 flex gap-1">
-                {PILLAR_ORDER.map(k => (
-                  <div key={k} className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${streamedPillars[k] ? "bg-brand" : "bg-gray-200"}`} />
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="relative mb-8">
-              <div className="w-20 h-20 rounded-full" style={{ border: "4px solid #F3F4F6", borderTopColor: "#7C3AED", animation: "spin 1.2s linear infinite" }} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Globe className="w-8 h-8 text-brand" />
-              </div>
-            </div>
-            <h2 className="text-xl font-bold text-ink mb-2">Analysing <span className="gradient-text">{host}</span></h2>
-            <p className="text-sm text-ink-3">Fetching HTML and starting performance scan\u2026</p>
+        {/* Top gradient bar */}
+        <div className="h-1" style={{ background: "linear-gradient(90deg, #7C3AED, #C026D3, #DB2777)" }} />
+
+        {/* Score section */}
+        <div className="pt-8 pb-4 px-8 text-center">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-5"
+            style={{ background: "rgba(124,58,237,0.07)", color: "#7C3AED", border: "1px solid rgba(124,58,237,0.13)" }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+            Auditing {host}
           </div>
-        )}
 
-        {/* Mini health strip */}
-        {streamHealth && (
-          <motion.div className="card rounded-2xl p-4 mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            {[
-              { label: "HTTPS", value: streamHealth.isHTTPS ? "Secure \u2713" : "Not secure \u2717", alert: !streamHealth.isHTTPS },
-              { label: "Robots.txt", value: streamHealth.hasRobots ? (streamHealth.blockedByCrawlers ? "\u26a0 Blocking" : "Valid \u2713") : "Missing \u2717", alert: !streamHealth.hasRobots || streamHealth.blockedByCrawlers },
-              { label: "Sitemap", value: streamHealth.hasSitemap ? "Found \u2713" : "Missing \u2717", alert: !streamHealth.hasSitemap },
-              { label: "Schema types", value: streamHealth.schemaTypesFound.length > 0 ? streamHealth.schemaTypesFound.slice(0, 2).join(", ") : "None", alert: streamHealth.schemaTypesFound.length === 0 },
-            ].map(item => (
-              <div key={item.label} className={`rounded-xl p-3 ${item.alert ? "bg-red-50 border border-red-100" : "bg-gray-50 border border-gray-100"}`}>
-                <p className={`text-xs font-medium mb-0.5 ${item.alert ? "text-red-500" : "text-ink-3"}`}>{item.label}</p>
-                <p className={`text-xs font-semibold truncate ${item.alert ? "text-red-600" : "text-ink-2"}`}>{item.value}</p>
-              </div>
-            ))}
-          </motion.div>
-        )}
+          {/* Score ring */}
+          <div className="relative mx-auto mb-4" style={{ width: 140, height: 140 }}>
+            <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+              <circle cx="60" cy="60" r="54" fill="none" stroke="#F3F4F6" strokeWidth="7" />
+              <motion.circle cx="60" cy="60" r="54" fill="none" stroke={scoreColor} strokeWidth="7"
+                strokeLinecap="round" strokeDasharray={circumference}
+                animate={{ strokeDashoffset: dashOffset }}
+                transition={{ duration: 0.6, ease: "easeOut" }} />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              {streamScore > 0 ? (
+                <>
+                  <motion.span className="text-4xl font-black tabular-nums" style={{ color: scoreColor }}
+                    key={streamScore} initial={{ scale: 1.15, opacity: 0.7 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.3 }}>
+                    {streamScore}
+                  </motion.span>
+                  <span className="text-xs text-ink-4">/ 100</span>
+                </>
+              ) : (
+                <div className="w-8 h-8 rounded-full" style={{ border: "3px solid #F3F4F6", borderTopColor: "#7C3AED", animation: "spin 1s linear infinite" }} />
+              )}
+            </div>
+          </div>
 
-        {/* Pillar grid */}
-        {hasAnyPillar && (
-          <div>
-            <h3 className="text-sm font-semibold text-ink-3 uppercase tracking-widest mb-4">Score Breakdown</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
-              {arrivedKeys.map(key => {
-                const p = streamedPillars[key];
-                return (
-                  <motion.div key={key} initial={{ opacity: 0, y: 16, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.35 }}>
-                    <div className="flex flex-col">
-                      <ScorePillar label={p.label} description={p.description} score={p.score} points={p.points} maxPoints={p.maxPoints} icon={PILLAR_ICONS[key]} delay={0} />
-                      <CheckList checks={p.checks} gated={true} />
-                    </div>
-                  </motion.div>
-                );
-              })}
-              {pendingKeys.map(key => (
-                <div key={key} className="card rounded-2xl p-4 animate-pulse">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 bg-gray-100 rounded" />
-                      <div className="h-3.5 bg-gray-100 rounded w-28" />
-                    </div>
-                    <div className="h-6 bg-gray-100 rounded w-10" />
+          <p className="text-sm text-ink-3">{streamScore > 0 ? "Score updating live…" : "Connecting to your website…"}</p>
+        </div>
+
+        {/* Progress bar */}
+        <div className="px-8 mb-2">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-semibold text-ink-3">{currentIdx} of {PILLAR_ORDER.length} checks complete</span>
+            <span className="text-xs font-bold text-brand tabular-nums">{pct}%</span>
+          </div>
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg, #7C3AED, #DB2777)" }}
+              animate={{ width: `${pct}%` }} transition={{ duration: 0.5, ease: "easeOut" }} />
+          </div>
+        </div>
+
+        {/* Checklist */}
+        <div className="px-8 pb-8 pt-4">
+          <div className="space-y-1">
+            {PILLAR_ORDER.map((key, i) => {
+              const done = !!streamedPillars[key];
+              const active = i === currentIdx;
+              const Icon = {
+                performance: Zap, technicalSeo: Search, contentKeywords: FileText,
+                geoReadiness: Globe, aeoReadiness: Brain, accessibility: Shield,
+                cro: Target, analytics: BarChart2,
+              }[key] || Globe;
+              const pillarScore = done ? streamedPillars[key].score : null;
+
+              return (
+                <motion.div key={key}
+                  className={`flex items-center gap-3 py-2.5 px-3 rounded-xl transition-colors ${active ? "bg-brand/5" : done ? "bg-transparent" : "bg-transparent"}`}
+                  initial={done ? { opacity: 0, x: -8 } : {}} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
+
+                  {/* Status icon */}
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{
+                    background: done ? "rgba(5,150,105,0.1)" : active ? "rgba(124,58,237,0.1)" : "#F9FAFB",
+                    border: done ? "1px solid rgba(5,150,105,0.2)" : active ? "1px solid rgba(124,58,237,0.2)" : "1px solid #E5E7EB",
+                  }}>
+                    {done ? (
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    ) : active ? (
+                      <div className="w-3.5 h-3.5 rounded-full" style={{ border: "2px solid #E5E7EB", borderTopColor: "#7C3AED", animation: "spin 0.8s linear infinite" }} />
+                    ) : (
+                      <Icon className="w-3.5 h-3.5 text-ink-4" />
+                    )}
                   </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full w-full mb-2" />
-                  <div className="h-3 bg-gray-50 rounded w-3/4" />
-                </div>
-              ))}
-            </div>
+
+                  {/* Label */}
+                  <span className={`text-sm flex-1 ${done ? "text-ink-2 font-medium" : active ? "text-ink font-semibold" : "text-ink-4"}`}>
+                    {active ? `Checking ${PILLAR_LABELS[key]}…` : PILLAR_LABELS[key]}
+                  </span>
+
+                  {/* Score badge */}
+                  {done && pillarScore != null && (
+                    <motion.span className="text-xs font-bold tabular-nums px-2 py-0.5 rounded-md"
+                      style={{
+                        background: pillarScore >= 70 ? "rgba(5,150,105,0.08)" : pillarScore >= 50 ? "rgba(217,119,6,0.08)" : "rgba(220,38,38,0.08)",
+                        color: pillarScore >= 70 ? "#059669" : pillarScore >= 50 ? "#D97706" : "#DC2626",
+                      }}
+                      initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
+                      {pillarScore}/100
+                    </motion.span>
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
-        )}
+        </div>
+      </motion.div>
 
-        {/* Keywords preview */}
-        {streamKeywords && streamKeywords.top.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <KeywordSection keywords={streamKeywords.top} coverageScore={streamKeywords.coverageScore} />
-          </motion.div>
-        )}
-
-      </div>
+      {/* Reassurance text */}
+      <motion.p className="text-xs text-ink-4 mt-6 text-center"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+        This usually takes 30–45 seconds. We&apos;re running 40+ checks on your site.
+      </motion.p>
     </div>
   );
 }
@@ -1889,6 +1921,11 @@ export default function Home() {
                 }
               } catch {}
               setStage("create-account");
+              // Store pending audit for OAuth redirects
+              try { sessionStorage.setItem("pendingAudit", JSON.stringify({ auditData: fullData, url: completeData.url })); } catch {}
+              // Auto-open signup modal immediately
+              setAuthMode("signup");
+              setAuthOpen(true);
             }
             window.scrollTo({ top: 0, behavior: "smooth" });
           } else if (eventType === "error") {
