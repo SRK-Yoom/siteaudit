@@ -174,68 +174,103 @@ function LoadingScreen({ url }: { url: string }) {
 
 // ── Email Gate Screen ───────────────────────────────────────────────────────
 
-// ── Create account to view report (no email link — one step) ─────────────────
-function CreateAccountScreen({ score, url, auditData, onReset, onOpenAuth }: {
-  score: number; url: string; auditData: AuditData; onReset: () => void; onOpenAuth: () => void;
+// ── Create account to see detailed report ────────────────────────────────────
+function CreateAccountScreen({ score, url, onReset, onOpenAuth, emailConfirmationSent }: {
+  score: number; url: string; onReset: () => void; onOpenAuth: () => void; emailConfirmationSent?: string | null;
 }) {
   let host = url;
   try { host = new URL(url).hostname; } catch {}
   const scoreLabel = score >= 90 ? "Excellent" : score >= 70 ? "Good" : score >= 50 ? "Needs Work" : "Critical Issues";
   const scoreColor = score >= 90 ? "#059669" : score >= 70 ? "#7C3AED" : score >= 50 ? "#D97706" : "#DC2626";
+  const ringPct = Math.min(100, Math.max(0, score));
+  const circumference = 2 * Math.PI * 54;
+  const dashOffset = circumference - (circumference * ringPct) / 100;
+
+  if (emailConfirmationSent) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center relative overflow-hidden">
+        <div className="absolute rounded-full pointer-events-none" style={{ width: 480, height: 480, top: -120, left: -120, background: "radial-gradient(circle, rgba(124,58,237,0.08), transparent)", filter: "blur(70px)" }} />
+        <motion.div className="relative bg-white rounded-3xl p-8 sm:p-10 max-w-md w-full"
+          style={{ boxShadow: "0 32px 80px rgba(124,58,237,0.14), 0 4px 16px rgba(0,0,0,0.06)" }}
+          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+          <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ background: "linear-gradient(90deg, #7C3AED, #C026D3, #DB2777)" }} />
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-green-50 border-2 border-green-200">
+            <Mail className="w-8 h-8 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-black text-ink mb-2">Check your inbox</h2>
+          <p className="text-ink-3 text-sm leading-relaxed mb-2">
+            We&apos;ve sent a confirmation link to <span className="font-semibold text-ink">{emailConfirmationSent}</span>.
+          </p>
+          <p className="text-ink-3 text-sm leading-relaxed mb-6">
+            Click the link to activate your account and access your full report for <strong>{host}</strong>.
+          </p>
+          <p className="text-xs text-ink-4 mb-5">Check spam if you don&apos;t see it within a few minutes.</p>
+          <button type="button" onClick={onReset} className="text-sm text-brand hover:text-brand-dark font-semibold underline underline-offset-2 transition-colors">
+            Audit a different website
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center relative overflow-hidden">
-      <div className="absolute rounded-full pointer-events-none" style={{ width: 480, height: 480, top: -120, left: -120, background: "radial-gradient(circle, rgba(124,58,237,0.08), transparent)", filter: "blur(70px)" }} />
-      <div className="absolute rounded-full pointer-events-none" style={{ width: 380, height: 380, bottom: -80, right: -80, background: "radial-gradient(circle, rgba(219,39,119,0.07), transparent)", filter: "blur(70px)" }} />
+    <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center relative overflow-hidden" style={{ minHeight: "calc(100vh - 64px)" }}>
+      <div className="absolute rounded-full pointer-events-none" style={{ width: 500, height: 500, top: -140, left: -140, background: "radial-gradient(circle, rgba(124,58,237,0.08), transparent)", filter: "blur(80px)" }} />
+      <div className="absolute rounded-full pointer-events-none" style={{ width: 400, height: 400, bottom: -100, right: -100, background: "radial-gradient(circle, rgba(219,39,119,0.06), transparent)", filter: "blur(70px)" }} />
 
-      <motion.div
-        className="relative bg-white rounded-3xl p-8 sm:p-10 max-w-lg w-full"
-        style={{ boxShadow: "0 32px 80px rgba(124,58,237,0.14), 0 4px 16px rgba(0,0,0,0.06)" }}
-        initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-      >
-        <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ background: "linear-gradient(90deg, #7C3AED, #C026D3, #DB2777)" }} />
+      <motion.div className="relative max-w-md w-full"
+        initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
 
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-          style={{ background: `${scoreColor}12`, border: `2px solid ${scoreColor}25` }}>
-          <CheckCircle className="w-7 h-7" style={{ color: scoreColor }} />
+        {/* Score ring */}
+        <div className="relative mx-auto mb-6" style={{ width: 160, height: 160 }}>
+          <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+            <circle cx="60" cy="60" r="54" fill="none" stroke="#F3F4F6" strokeWidth="8" />
+            <motion.circle cx="60" cy="60" r="54" fill="none" stroke={scoreColor} strokeWidth="8"
+              strokeLinecap="round" strokeDasharray={circumference}
+              initial={{ strokeDashoffset: circumference }}
+              animate={{ strokeDashoffset: dashOffset }}
+              transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }} />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-5xl font-black tabular-nums" style={{ color: scoreColor }}>{score}</span>
+            <span className="text-xs text-ink-4 mt-0.5">/ 100</span>
+          </div>
         </div>
 
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold mb-3"
-          style={{ background: "rgba(124,58,237,0.07)", color: "#7C3AED", border: "1px solid rgba(124,58,237,0.13)" }}>
-          <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-          Audit complete · {host}
-        </div>
+        <motion.div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold mb-3"
+          style={{ background: `${scoreColor}12`, color: scoreColor, border: `1px solid ${scoreColor}25` }}
+          initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }}>
+          {scoreLabel}
+        </motion.div>
 
         <h2 className="text-2xl sm:text-3xl font-black text-ink mb-2">
-          Your report is <span className="gradient-text">ready!</span>
+          Your audit for <span className="gradient-text">{host}</span> is done
         </h2>
-        <p className="text-ink-3 text-sm leading-relaxed mb-6">
-          Create a free account to view your full report on your dashboard — score breakdown, keyword analysis, and every fix we recommend.
+        <p className="text-ink-3 text-sm leading-relaxed mb-8 max-w-sm mx-auto">
+          Create a free account to see your detailed score breakdown, pillar-by-pillar analysis, keyword coverage, and personalised recommendations.
         </p>
 
-        {/* Score teaser */}
-        <div className="flex items-center justify-center gap-4 mb-6 p-4 rounded-2xl bg-gray-50 border border-gray-100">
-          <div>
-            <p className="text-xs text-ink-4 font-medium mb-0.5">Overall Score</p>
-            <p className="text-4xl font-black tabular-nums" style={{ color: scoreColor }}>{score}</p>
-            <p className="text-xs font-semibold mt-0.5" style={{ color: scoreColor }}>{scoreLabel}</p>
-          </div>
-          <div className="w-px h-12 bg-gray-200" />
-          <div className="text-left">
-            <p className="text-xs text-ink-4 mb-1.5">Your report includes:</p>
-            {["8-pillar score breakdown", "Keyword coverage analysis", "Prioritised fix list"].map(item => (
-              <div key={item} className="flex items-center gap-1.5 text-xs text-ink-3 mt-1">
-                <CheckCircle className="w-3.5 h-3.5 text-brand shrink-0" />{item}
+        <div className="bg-white rounded-2xl p-5 mb-6 text-left" style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.06)", border: "1px solid #E5E7EB" }}>
+          <p className="text-xs font-bold text-ink-4 uppercase tracking-widest mb-3">Your full report includes</p>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { icon: <BarChart2 className="w-4 h-4 text-brand" />, label: "8-pillar breakdown" },
+              { icon: <Search className="w-4 h-4 text-brand" />, label: "Keyword analysis" },
+              { icon: <AlertTriangle className="w-4 h-4 text-brand" />, label: "Issue prioritisation" },
+              { icon: <Lightbulb className="w-4 h-4 text-brand" />, label: "Fix recommendations" },
+            ].map(({ icon, label }) => (
+              <div key={label} className="flex items-center gap-2 text-sm text-ink-2">
+                {icon}<span>{label}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <button type="button" onClick={onOpenAuth} className="btn-gradient w-full flex items-center justify-center gap-2 py-3.5 text-sm mb-3">
-          <User className="w-4 h-4" /><span>Create free account to view report</span><ArrowRight className="w-4 h-4" />
+        <button type="button" onClick={onOpenAuth} className="btn-gradient w-full flex items-center justify-center gap-2 py-4 text-base font-bold mb-3 rounded-xl">
+          <User className="w-5 h-5" /><span>Create Free Account</span><ArrowRight className="w-5 h-5" />
         </button>
-        <p className="text-xs text-ink-4 mb-4">
-          Sign up with email or use Google / Apple. You&apos;ll land on your dashboard with this report saved.
+        <p className="text-xs text-ink-4 mb-5">
+          Sign up with email, Google or Apple. Instant access to your dashboard.
         </p>
         <button type="button" onClick={onReset} className="text-xs text-brand hover:text-brand-dark underline underline-offset-2 transition-colors">
           Audit a different website
@@ -1503,103 +1538,128 @@ function StreamingScreen({ url, statusMsg, streamHealth, streamedPillars, stream
 
 // ── Idle / Landing Screen ───────────────────────────────────────────────────
 
-function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef, onSignUp }: {
+function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef }: {
   onSubmit: (e: React.FormEvent) => void;
   inputUrl: string;
   setInputUrl: (v: string) => void;
   inputRef: React.RefObject<HTMLInputElement>;
-  onSignUp: () => void;
 }) {
   return (
     <div className="flex-1 flex flex-col">
-      {/* Hero — two column */}
-      <section className="relative overflow-hidden bg-white border-b border-gray-100 px-6 pt-14 pb-0">
-        <div className="max-w-content mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center pb-12 lg:pb-16">
+      {/* Hero — centered, search-bar focused */}
+      <section className="relative overflow-hidden bg-white px-6 flex flex-col items-center justify-center" style={{ minHeight: "calc(100vh - 64px)" }}>
+        {/* Decorative blobs */}
+        <div className="absolute top-[-200px] left-[-150px] w-[500px] h-[500px] rounded-full opacity-[0.06] pointer-events-none" style={{ background: "radial-gradient(circle, #7C3AED, transparent)" }} />
+        <div className="absolute bottom-[-180px] right-[-120px] w-[450px] h-[450px] rounded-full opacity-[0.05] pointer-events-none" style={{ background: "radial-gradient(circle, #DB2777, transparent)" }} />
 
-            {/* Left: clean text + form */}
-            <div>
-              <motion.div className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-6"
-                style={{ background: "rgba(124,58,237,0.07)", color: "#7C3AED", border: "1px solid rgba(124,58,237,0.12)" }}
-                initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
-                <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-                Free · Instant · No account needed
-              </motion.div>
+        <div className="relative max-w-2xl w-full text-center">
+          <motion.div className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-6"
+            style={{ background: "rgba(124,58,237,0.07)", color: "#7C3AED", border: "1px solid rgba(124,58,237,0.12)" }}
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+            Free instant audit · No credit card required
+          </motion.div>
 
-              <motion.h1 className="text-4xl sm:text-5xl font-black text-ink leading-[1.1] tracking-tight mb-4"
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.05 }}>
-                Is your website ready<br />for the <span className="gradient-text">AI era?</span>
-              </motion.h1>
+          <motion.h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-ink leading-[1.08] tracking-tight mb-5"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.05 }}>
+            Find out why your website<br className="hidden sm:block" /> isn&apos;t <span className="gradient-text">ranking</span>
+          </motion.h1>
 
-              <motion.p className="text-base text-ink-3 max-w-md mb-7 leading-relaxed"
-                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
-                Get a full SEO, GEO & AEO audit in under 45 seconds. See your score, what&apos;s broken, and what it&apos;s costing you.
-              </motion.p>
+          <motion.p className="text-base sm:text-lg text-ink-3 max-w-xl mx-auto mb-8 leading-relaxed"
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+            SiteScore audits your website across SEO, AI-readiness, performance &amp; 5 more pillars in under 45 seconds — then tells you exactly what to fix and how.
+          </motion.p>
 
-              <motion.form onSubmit={onSubmit} className="w-full max-w-lg"
-                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}>
-                <div className="flex flex-col sm:flex-row gap-2 p-1.5 bg-white border border-gray-200 rounded-2xl shadow-card">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-4 pointer-events-none" />
-                    <input
-                      ref={inputRef} type="text" value={inputUrl} onChange={e => setInputUrl(e.target.value)}
-                      placeholder="yourwebsite.com" autoFocus spellCheck={false} autoComplete="off"
-                      className="w-full pl-11 pr-3 py-3 bg-transparent text-ink placeholder:text-ink-4 text-sm focus:outline-none rounded-xl url-input"
-                    />
-                  </div>
-                  <button type="submit" disabled={!inputUrl.trim()} className="btn-gradient inline-flex items-center justify-center gap-2 px-6 py-3 text-sm shrink-0">
-                    Get My Free Score <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </motion.form>
-
-              <motion.div className="flex flex-wrap gap-4 mt-5"
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-                {[
-                  { v: "~40s", l: "full audit time" },
-                  { v: "6", l: "pillars analysed" },
-                  { v: "40+", l: "signals checked" },
-                ].map(({ v, l }) => (
-                  <div key={l} className="flex items-baseline gap-1.5">
-                    <span className="text-lg font-black text-ink">{v}</span>
-                    <span className="text-xs text-ink-4">{l}</span>
-                  </div>
-                ))}
-              </motion.div>
+          <motion.form onSubmit={onSubmit} className="w-full max-w-xl mx-auto"
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}>
+            <div className="flex flex-col sm:flex-row gap-2 p-2 bg-white border-2 border-gray-200 rounded-2xl shadow-xl shadow-brand/5 focus-within:border-brand/40 transition-colors">
+              <div className="flex-1 relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-4 pointer-events-none" />
+                <input
+                  ref={inputRef} type="text" value={inputUrl} onChange={e => setInputUrl(e.target.value)}
+                  placeholder="Enter your website URL" autoFocus spellCheck={false} autoComplete="off"
+                  className="w-full pl-12 pr-3 py-3.5 bg-transparent text-ink placeholder:text-ink-4 text-base focus:outline-none rounded-xl url-input"
+                />
+              </div>
+              <button type="submit" disabled={!inputUrl.trim()} className="btn-gradient inline-flex items-center justify-center gap-2 px-7 py-3.5 text-base font-bold shrink-0 rounded-xl">
+                Audit My Site <ArrowRight className="w-5 h-5" />
+              </button>
             </div>
+          </motion.form>
 
-            {/* Right: animated report mockup */}
-            <motion.div className="relative lg:self-end"
-              initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
-              <HeroReportMockup />
-            </motion.div>
+          <motion.div className="flex flex-wrap justify-center gap-6 mt-6"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+            {[
+              { v: "8 pillars", l: "analysed" },
+              { v: "40+ signals", l: "checked" },
+              { v: "< 45 sec", l: "to results" },
+            ].map(({ v, l }) => (
+              <div key={l} className="flex items-baseline gap-1.5">
+                <span className="text-sm font-bold text-ink">{v}</span>
+                <span className="text-xs text-ink-4">{l}</span>
+              </div>
+            ))}
+          </motion.div>
 
+          {/* Scroll indicator */}
+          <motion.div className="mt-12 flex flex-col items-center gap-1 text-ink-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
+            <span className="text-xs">Learn more</span>
+            <ChevronRight className="w-4 h-4 rotate-90 animate-bounce" />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* What SiteScore does — clear value prop */}
+      <section className="bg-white border-y border-gray-100 px-6 py-16">
+        <div className="max-w-content mx-auto text-center">
+          <motion.p className="text-xs font-semibold text-brand uppercase tracking-widest mb-3"
+            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
+            What is SiteScore?
+          </motion.p>
+          <motion.h2 className="text-2xl sm:text-3xl font-black text-ink mb-4 max-w-2xl mx-auto"
+            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            A complete website health check — for the age of <span className="gradient-text">AI search</span>
+          </motion.h2>
+          <motion.p className="text-ink-3 text-base max-w-2xl mx-auto mb-12 leading-relaxed"
+            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            Google, ChatGPT, and AI assistants now decide who gets seen online. SiteScore checks whether your website is visible to all of them — then gives you a prioritised fix list so you know exactly what to do first.
+          </motion.p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            {[
+              { icon: <Search className="w-6 h-6" />, title: "Scan", desc: "Enter your URL and we run 40+ checks across SEO, performance, AI-readiness, accessibility and more." },
+              { icon: <BarChart2 className="w-6 h-6" />, title: "Score", desc: "Get a score out of 100 with a detailed breakdown of 8 pillars — see exactly where you're strong and where you're losing traffic." },
+              { icon: <Lightbulb className="w-6 h-6" />, title: "Fix", desc: "Receive a prioritised list of what to fix. Do it yourself with our guides, or let our team handle it for you." },
+            ].map(({ icon, title, desc }, i) => (
+              <motion.div key={title} className="flex flex-col items-center gap-3 p-6"
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-brand" style={{ background: "rgba(124,58,237,0.08)" }}>{icon}</div>
+                <h3 className="text-lg font-bold text-ink">{title}</h3>
+                <p className="text-sm text-ink-3 leading-relaxed">{desc}</p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Product Preview Section */}
-      <ProductPreviewSection />
-
       {/* Why it matters */}
-      <section className="bg-white border-y border-gray-100 px-6 py-14">
+      <section className="px-6 py-16">
         <div className="max-w-content mx-auto">
           <div className="text-center mb-10">
-            <p className="text-xs font-semibold text-ink-4 uppercase tracking-widest mb-2">Why this matters for your business</p>
+            <p className="text-xs font-semibold text-ink-4 uppercase tracking-widest mb-2">Why this matters</p>
             <h2 className="text-2xl sm:text-3xl font-black text-ink">Poor website health is costing you customers <span className="gradient-text">right now</span></h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: <TrendingDown className="w-5 h-5" />, stat: "68%", desc: "of websites score below 60 on SEO — losing potential customers to competitors who outrank them", color: "#DC2626" },
-              { icon: <Brain className="w-5 h-5" />, stat: "73%", desc: "of searches will be answered by AI by 2026. Sites without Schema markup won't be cited at all", color: "#7C3AED" },
-              { icon: <Zap className="w-5 h-5" />, stat: "53%", desc: "of mobile visitors abandon a site that takes longer than 3 seconds to load, costing you enquiries", color: "#D97706" },
+              { icon: <TrendingDown className="w-5 h-5" />, stat: "68%", desc: "of websites score below 60 on SEO — losing customers to competitors who outrank them", color: "#DC2626" },
+              { icon: <Brain className="w-5 h-5" />, stat: "73%", desc: "of searches will be answered by AI by 2026. Without Schema markup, you won't be cited", color: "#7C3AED" },
+              { icon: <Zap className="w-5 h-5" />, stat: "53%", desc: "of mobile visitors leave if your site takes more than 3 seconds to load", color: "#D97706" },
               { icon: <TrendingUp className="w-5 h-5" />, stat: "$15k+", desc: "estimated annual revenue lost by a typical SME with poor SEO and no structured data", color: "#059669" },
             ].map(({ icon, stat, desc, color }, i) => (
               <motion.div key={i} className="card rounded-2xl p-5"
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.07 }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: `${color}10`, color }}>
-                  {icon}
-                </div>
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.07 }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3" style={{ background: `${color}10`, color }}>{icon}</div>
                 <p className="text-3xl font-black mb-2" style={{ color }}>{stat}</p>
                 <p className="text-xs text-ink-3 leading-relaxed">{desc}</p>
               </motion.div>
@@ -1608,28 +1668,25 @@ function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef, onSignUp }: {
         </div>
       </section>
 
-      <HowItWorksSection />
-
-      {/* What we analyse */}
+      {/* 8 pillars */}
       <section className="bg-white border-y border-gray-100 px-6 py-14">
         <div className="max-w-content mx-auto">
-          <p className="text-center text-xs font-semibold text-ink-4 uppercase tracking-widest mb-8">6 pillars analysed in every audit</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <p className="text-center text-xs font-semibold text-ink-4 uppercase tracking-widest mb-8">8 pillars analysed in every audit</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             {[
-              { icon: <Zap className="w-5 h-5" />, label: "Performance", sub: "Core Web Vitals, speed, mobile score" },
-              { icon: <Search className="w-5 h-5" />, label: "Technical SEO", sub: "Meta, sitemap, crawlability, HTTPS" },
-              { icon: <FileText className="w-5 h-5" />, label: "Content & Keywords", sub: "Keyword placement, headings, depth" },
-              { icon: <Globe className="w-5 h-5" />, label: "GEO Readiness", sub: "AI citation, Schema, entity signals" },
-              { icon: <Brain className="w-5 h-5" />, label: "AEO Readiness", sub: "Featured snippets, FAQ, voice search" },
-              { icon: <Shield className="w-5 h-5" />, label: "Accessibility", sub: "WCAG compliance, best practices" },
-            ].map(({ icon, label, sub }, i) => (
-              <motion.div key={label} className="card rounded-2xl p-4 flex flex-col items-center gap-2.5 text-center hover:scale-[1.02] transition-transform"
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 + i * 0.07 }}>
+              { icon: <Zap className="w-5 h-5" />, label: "Performance" },
+              { icon: <Search className="w-5 h-5" />, label: "Technical SEO" },
+              { icon: <FileText className="w-5 h-5" />, label: "Content" },
+              { icon: <Globe className="w-5 h-5" />, label: "GEO" },
+              { icon: <Brain className="w-5 h-5" />, label: "AEO" },
+              { icon: <Shield className="w-5 h-5" />, label: "Accessibility" },
+              { icon: <Target className="w-5 h-5" />, label: "CRO" },
+              { icon: <BarChart2 className="w-5 h-5" />, label: "Analytics" },
+            ].map(({ icon, label }, i) => (
+              <motion.div key={label} className="card rounded-2xl p-4 flex flex-col items-center gap-2 text-center hover:scale-[1.03] transition-transform"
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}>
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-brand" style={{ background: "rgba(124,58,237,0.08)" }}>{icon}</div>
-                <div>
-                  <p className="text-xs font-bold text-ink leading-tight">{label}</p>
-                  <p className="text-xs text-ink-4 mt-0.5 leading-snug">{sub}</p>
-                </div>
+                <p className="text-xs font-bold text-ink leading-tight">{label}</p>
               </motion.div>
             ))}
           </div>
@@ -1669,19 +1726,13 @@ function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef, onSignUp }: {
         <div className="max-w-2xl mx-auto text-center">
           <div className="card rounded-3xl p-8 sm:p-10" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.06), rgba(219,39,119,0.04))", borderColor: "rgba(124,58,237,0.15)" }}>
             <h2 className="text-2xl sm:text-3xl font-black text-ink mb-3">
-              Don&apos;t let your competitors rank above you.<br />
-              <span className="gradient-text">Check your score — free.</span>
+              Stop guessing. <span className="gradient-text">Start fixing.</span>
             </h2>
-            <p className="text-ink-3 mb-6 text-sm">No signup needed. Takes 30 seconds. Find out what&apos;s holding your website back right now.</p>
+            <p className="text-ink-3 mb-6 text-sm">Enter your URL above and get your full audit in under a minute. Create a free account to save your results and track improvements over time.</p>
             <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               className="btn-gradient inline-flex items-center gap-2 px-8 py-4 text-base">
-              Run My Free Audit <ArrowRight className="w-5 h-5" />
+              Audit My Site Now <ArrowRight className="w-5 h-5" />
             </button>
-            <p className="text-xs text-ink-4 mt-4 flex items-center justify-center gap-4">
-              <span className="flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-green-500" />Free forever</span>
-              <span className="flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5 text-green-500" />No credit card</span>
-              <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-brand" />Join 500+ businesses</span>
-            </p>
           </div>
         </div>
       </section>
@@ -1703,6 +1754,8 @@ export default function Home() {
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signup");
   const [pendingSave, setPendingSave] = useState(false);
   const [savedToAccount, setSavedToAccount] = useState(false);
+  const [reportToken, setReportToken] = useState<string | null>(null);
+  const [emailConfirmationSent, setEmailConfirmationSent] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Streaming state
@@ -1826,8 +1879,24 @@ export default function Home() {
               gatedRecsCount: completeData.gatedRecsCount,
             };
             setAuditData(fullData);
-            if (user) { saveAudit(fullData); setStage("results"); }
-            else { setStage("create-account"); }
+            if (user) {
+              saveAudit(fullData);
+              setStage("results");
+            } else {
+              // Save to report_tokens so audit survives the signup/confirmation flow
+              try {
+                const tokenRes = await fetch("/api/reports/create-token", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ auditData: fullData }),
+                });
+                if (tokenRes.ok) {
+                  const { token: t } = await tokenRes.json() as { token: string };
+                  setReportToken(t);
+                }
+              } catch {}
+              setStage("create-account");
+            }
             window.scrollTo({ top: 0, behavior: "smooth" });
           } else if (eventType === "error") {
             setErrorMsg((data.message as string) ?? "Something went wrong.");
@@ -1845,7 +1914,7 @@ export default function Home() {
   // Email gate is now self-contained — handleEmailGate removed; EmailGateScreen handles its own submission
 
   const handleReset = () => {
-    setStage("idle"); setInputUrl(""); setAuditData(null);
+    setStage("idle"); setInputUrl(""); setAuditData(null); setEmailConfirmationSent(null);
     setErrorMsg(""); setSavedToAccount(false);
     setTimeout(() => inputRef.current?.focus(), 100);
   };
@@ -1865,13 +1934,21 @@ export default function Home() {
         initialMode={authMode}
         headline={stage === "create-account" ? "Create your free account" : pendingSave ? "Save your audit report" : undefined}
         subheadline={stage === "create-account" ? "You'll land on your dashboard with this report ready to view." : pendingSave ? "Create a free account to track your score over time." : undefined}
+        auditMeta={auditData ? {
+          score: auditData.score,
+          domain: auditData.health.domain,
+          pillarSummary: Object.values(auditData.pillars).map(p => `${p.label}: ${p.score}`).join(" | "),
+        } : undefined}
+        reportToken={reportToken}
         onBeforeOAuth={() => {
+          if (typeof window !== "undefined" && reportToken) {
+            try { sessionStorage.setItem("pendingReportToken", reportToken); } catch {}
+          }
           if (stage === "create-account" && auditData && typeof window !== "undefined") {
-            try {
-              sessionStorage.setItem("pendingAudit", JSON.stringify({ auditData, url: submittedUrl }));
-            } catch {}
+            try { sessionStorage.setItem("pendingAudit", JSON.stringify({ auditData, url: submittedUrl })); } catch {}
           }
         }}
+        onCloseAfterEmailSent={stage === "create-account" ? (email) => setEmailConfirmationSent(email) : undefined}
         onSuccess={() => {
           setAuthOpen(false);
           if (stage === "create-account" && auditData) {
@@ -1887,7 +1964,7 @@ export default function Home() {
       <AnimatePresence mode="wait">
         {stage === "idle" && (
           <motion.div key="idle" className="flex-1 flex flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-            <IdleScreen onSubmit={handleSubmit} inputUrl={inputUrl} setInputUrl={setInputUrl} inputRef={inputRef} onSignUp={handleOpenSignUp} />
+            <IdleScreen onSubmit={handleSubmit} inputUrl={inputUrl} setInputUrl={setInputUrl} inputRef={inputRef} />
           </motion.div>
         )}
 
@@ -1909,8 +1986,8 @@ export default function Home() {
             <CreateAccountScreen
               score={auditData.score}
               url={submittedUrl}
-              auditData={auditData}
               onReset={handleReset}
+              emailConfirmationSent={emailConfirmationSent}
               onOpenAuth={() => {
                 if (typeof window !== "undefined") {
                   try {

@@ -1077,13 +1077,49 @@ export default function DashboardPage() {
     if (user) fetchData();
   }, [user, authLoading, fetchData, router]);
 
-  // Restore audit saved before OAuth redirect (create-account flow)
+  // Restore audit from report_token (email confirmation flow) or sessionStorage (OAuth flow)
   useEffect(() => {
     if (!user || typeof window === "undefined") return;
+
+    const restoreFromToken = async (token: string) => {
+      try {
+        const res = await fetch(`/api/reports/from-token?token=${encodeURIComponent(token)}`);
+        if (!res.ok) return;
+        const { auditData } = await res.json() as { auditData: unknown };
+        if (!auditData) return;
+        const saveRes = await fetch("/api/reports/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ auditData }),
+        });
+        if (saveRes.ok) fetchData();
+      } catch {}
+    };
+
+    // Check URL for report_token (email confirmation redirect)
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get("report_token");
+    if (urlToken) {
+      restoreFromToken(urlToken);
+      // Clean URL
+      const clean = window.location.pathname;
+      window.history.replaceState({}, "", clean);
+      return;
+    }
+
+    // Check sessionStorage for pendingReportToken (OAuth redirect)
+    const sessionToken = sessionStorage.getItem("pendingReportToken");
+    if (sessionToken) {
+      sessionStorage.removeItem("pendingReportToken");
+      restoreFromToken(sessionToken);
+      return;
+    }
+
+    // Legacy: check sessionStorage for pendingAudit (direct save)
     try {
       const raw = sessionStorage.getItem("pendingAudit");
       if (!raw) return;
-      const { auditData } = JSON.parse(raw) as { auditData: unknown; url?: string };
+      const { auditData } = JSON.parse(raw) as { auditData: unknown };
       sessionStorage.removeItem("pendingAudit");
       fetch("/api/reports/save", {
         method: "POST",

@@ -7,17 +7,28 @@ import { createClient } from "@/lib/supabase/client";
 
 type Mode = "signin" | "signup";
 
+interface AuditMeta {
+  score?: number;
+  domain?: string;
+  pillarSummary?: string;
+}
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: Mode;
   onSuccess?: () => void;
   onBeforeOAuth?: () => void;
+  onCloseAfterEmailSent?: (email: string) => void;
+  /** Audit metadata to embed in user_metadata so the confirmation email template can show a report teaser */
+  auditMeta?: AuditMeta;
+  /** Report token for the pending audit — used to redirect confirmation to dashboard with the report */
+  reportToken?: string | null;
   headline?: string;
   subheadline?: string;
 }
 
-export function AuthModal({ isOpen, onClose, initialMode = "signup", onSuccess, onBeforeOAuth, headline, subheadline }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, initialMode = "signup", onSuccess, onBeforeOAuth, onCloseAfterEmailSent, auditMeta, reportToken, headline, subheadline }: AuthModalProps) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,9 +48,10 @@ export function AuthModal({ isOpen, onClose, initialMode = "signup", onSuccess, 
     setOauthLoading(provider);
     onBeforeOAuth?.();
     const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const redirectNext = reportToken ? `/dashboard?report_token=${reportToken}` : "/dashboard";
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${origin}/auth/callback?next=/dashboard` },
+      options: { redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(redirectNext)}` },
     });
     if (err) {
       setError(err.message);
@@ -51,9 +63,18 @@ export function AuthModal({ isOpen, onClose, initialMode = "signup", onSuccess, 
     e.preventDefault();
     setLoading(true); setError(null);
     if (mode === "signup") {
+      const redirectNext = reportToken ? `/dashboard?report_token=${reportToken}` : "/dashboard";
       const { error: err } = await supabase.auth.signUp({
         email, password,
-        options: { data: { full_name: fullName }, emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          data: {
+            full_name: fullName,
+            ...(auditMeta?.score != null && { audit_score: auditMeta.score }),
+            ...(auditMeta?.domain && { audit_domain: auditMeta.domain }),
+            ...(auditMeta?.pillarSummary && { audit_pillar_summary: auditMeta.pillarSummary }),
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectNext)}`,
+        },
       });
       if (err) { setError(err.message); setLoading(false); return; }
       setDone(true); setLoading(false); onSuccess?.();
@@ -69,7 +90,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "signup", onSuccess, 
       {isOpen && (
         <motion.div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <motion.div className="absolute inset-0 bg-ink/30 backdrop-blur-sm" onClick={onClose}
+          <motion.div className="absolute inset-0 bg-ink/30 backdrop-blur-sm" onClick={() => { if (done) onCloseAfterEmailSent?.(email); onClose(); }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
 
           <motion.div
@@ -80,7 +101,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "signup", onSuccess, 
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={{ duration: 0.25 }}
           >
-            <button onClick={onClose}
+            <button onClick={() => { if (done) onCloseAfterEmailSent?.(email); onClose(); }}
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
               <X className="w-4 h-4 text-ink-3" />
             </button>
