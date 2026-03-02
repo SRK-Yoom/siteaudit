@@ -175,8 +175,8 @@ function LoadingScreen({ url }: { url: string }) {
 // ── Email Gate Screen ───────────────────────────────────────────────────────
 
 // ── Create account to see detailed report ────────────────────────────────────
-function CreateAccountScreen({ score, url, onReset, onOpenAuth, emailConfirmationSent }: {
-  score: number; url: string; onReset: () => void; onOpenAuth: () => void; emailConfirmationSent?: string | null;
+function CreateAccountScreen({ score, url, onReset, onOpenAuth }: {
+  score: number; url: string; onReset: () => void; onOpenAuth: () => void;
 }) {
   let host = url;
   try { host = new URL(url).hostname; } catch {}
@@ -185,33 +185,6 @@ function CreateAccountScreen({ score, url, onReset, onOpenAuth, emailConfirmatio
   const ringPct = Math.min(100, Math.max(0, score));
   const circumference = 2 * Math.PI * 54;
   const dashOffset = circumference - (circumference * ringPct) / 100;
-
-  if (emailConfirmationSent) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center relative overflow-hidden">
-        <div className="absolute rounded-full pointer-events-none" style={{ width: 480, height: 480, top: -120, left: -120, background: "radial-gradient(circle, rgba(124,58,237,0.08), transparent)", filter: "blur(70px)" }} />
-        <motion.div className="relative bg-white rounded-3xl p-8 sm:p-10 max-w-md w-full"
-          style={{ boxShadow: "0 32px 80px rgba(124,58,237,0.14), 0 4px 16px rgba(0,0,0,0.06)" }}
-          initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-          <div className="absolute top-0 left-0 right-0 h-1 rounded-t-3xl" style={{ background: "linear-gradient(90deg, #7C3AED, #C026D3, #DB2777)" }} />
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-green-50 border-2 border-green-200">
-            <Mail className="w-8 h-8 text-green-600" />
-          </div>
-          <h2 className="text-2xl font-black text-ink mb-2">Check your inbox</h2>
-          <p className="text-ink-3 text-sm leading-relaxed mb-2">
-            We&apos;ve sent a confirmation link to <span className="font-semibold text-ink">{emailConfirmationSent}</span>.
-          </p>
-          <p className="text-ink-3 text-sm leading-relaxed mb-6">
-            Click the link to activate your account and access your full report for <strong>{host}</strong>.
-          </p>
-          <p className="text-xs text-ink-4 mb-5">Check spam if you don&apos;t see it within a few minutes.</p>
-          <button type="button" onClick={onReset} className="text-sm text-brand hover:text-brand-dark font-semibold underline underline-offset-2 transition-colors">
-            Audit a different website
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center relative overflow-hidden" style={{ minHeight: "calc(100vh - 64px)" }}>
@@ -1780,7 +1753,6 @@ export default function Home() {
   const [pendingSave, setPendingSave] = useState(false);
   const [savedToAccount, setSavedToAccount] = useState(false);
   const [reportToken, setReportToken] = useState<string | null>(null);
-  const [emailConfirmationSent, setEmailConfirmationSent] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Streaming state
@@ -1944,7 +1916,7 @@ export default function Home() {
   // Email gate is now self-contained — handleEmailGate removed; EmailGateScreen handles its own submission
 
   const handleReset = () => {
-    setStage("idle"); setInputUrl(""); setAuditData(null); setEmailConfirmationSent(null);
+    setStage("idle"); setInputUrl(""); setAuditData(null);
     setErrorMsg(""); setSavedToAccount(false);
     setTimeout(() => inputRef.current?.focus(), 100);
   };
@@ -1978,7 +1950,13 @@ export default function Home() {
             try { sessionStorage.setItem("pendingAudit", JSON.stringify({ auditData, url: submittedUrl })); } catch {}
           }
         }}
-        onCloseAfterEmailSent={stage === "create-account" ? (email) => setEmailConfirmationSent(email) : undefined}
+        onVerified={() => {
+          setAuthOpen(false);
+          if (auditData) {
+            saveAudit(auditData);
+            router.push("/dashboard");
+          }
+        }}
         onSuccess={() => {
           setAuthOpen(false);
           if (stage === "create-account" && auditData) {
@@ -2017,7 +1995,6 @@ export default function Home() {
               score={auditData.score}
               url={submittedUrl}
               onReset={handleReset}
-              emailConfirmationSent={emailConfirmationSent}
               onOpenAuth={() => {
                 if (typeof window !== "undefined") {
                   try {
