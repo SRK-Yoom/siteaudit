@@ -1547,30 +1547,30 @@ function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef }: {
   return (
     <div className="flex-1 flex flex-col">
       {/* Hero — centered, search-bar focused */}
-      <section className="relative overflow-hidden bg-white px-6 flex flex-col items-center justify-center" style={{ minHeight: "calc(100vh - 64px)" }}>
+      <section className="relative overflow-hidden bg-white px-6 flex flex-col items-center justify-center pt-12 pb-14 sm:pt-16 sm:pb-16" style={{ minHeight: "min(70vh, 580px)" }}>
         {/* Decorative blobs */}
         <div className="absolute top-[-200px] left-[-150px] w-[500px] h-[500px] rounded-full opacity-[0.06] pointer-events-none" style={{ background: "radial-gradient(circle, #7C3AED, transparent)" }} />
         <div className="absolute bottom-[-180px] right-[-120px] w-[450px] h-[450px] rounded-full opacity-[0.05] pointer-events-none" style={{ background: "radial-gradient(circle, #DB2777, transparent)" }} />
 
-        <div className="relative max-w-2xl w-full text-center">
-          <motion.div className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-6"
+        <div className="relative max-w-3xl w-full text-center">
+          <motion.div className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full mb-5"
             style={{ background: "rgba(124,58,237,0.07)", color: "#7C3AED", border: "1px solid rgba(124,58,237,0.12)" }}
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }}>
             <span className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
             Free instant audit · No credit card required
           </motion.div>
 
-          <motion.h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-ink leading-[1.08] tracking-tight mb-5"
+          <motion.h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] font-black text-ink leading-[1.08] tracking-tight mb-4"
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, delay: 0.05 }}>
-            Find out why your website<br className="hidden sm:block" /> isn&apos;t <span className="gradient-text">ranking</span>
+            Find out why your website isn&apos;t <span className="gradient-text">ranking</span>
           </motion.h1>
 
-          <motion.p className="text-base sm:text-lg text-ink-3 max-w-xl mx-auto mb-8 leading-relaxed"
+          <motion.p className="text-base sm:text-lg text-ink-3 max-w-2xl mx-auto mb-7 leading-relaxed"
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
             SiteScore audits your website across SEO, AI-readiness, performance &amp; 5 more pillars in under 45 seconds — then tells you exactly what to fix and how.
           </motion.p>
 
-          <motion.form onSubmit={onSubmit} className="w-full max-w-xl mx-auto"
+          <motion.form onSubmit={onSubmit} className="w-full max-w-2xl mx-auto"
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}>
             <div className="flex flex-col sm:flex-row gap-2 p-2 bg-white border-2 border-gray-200 rounded-2xl shadow-xl shadow-brand/5 focus-within:border-brand/40 transition-colors">
               <div className="flex-1 relative">
@@ -1587,7 +1587,7 @@ function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef }: {
             </div>
           </motion.form>
 
-          <motion.div className="flex flex-wrap justify-center gap-6 mt-6"
+          <motion.div className="flex flex-wrap justify-center gap-6 mt-5"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
             {[
               { v: "8 pillars", l: "analysed" },
@@ -1599,13 +1599,6 @@ function IdleScreen({ onSubmit, inputUrl, setInputUrl, inputRef }: {
                 <span className="text-xs text-ink-4">{l}</span>
               </div>
             ))}
-          </motion.div>
-
-          {/* Scroll indicator */}
-          <motion.div className="mt-12 flex flex-col items-center gap-1 text-ink-4"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}>
-            <span className="text-xs">Learn more</span>
-            <ChevronRight className="w-4 h-4 rotate-90 animate-bounce" />
           </motion.div>
         </div>
       </section>
